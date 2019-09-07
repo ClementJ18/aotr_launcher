@@ -1,0 +1,14 @@
+*.pyc
+about.txt
+Albertus Medium Regular.ttf
+aotr.ico
+*.json
+*.ini
+*.exe
+*.rar
+*.jpg
+specifications.txt
+token.pickle
+tester.py
+test.py
+readme.txt
