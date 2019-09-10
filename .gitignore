@@ -12,3 +12,6 @@ token.pickle
 tester.py
 test.py
 readme.txt
+exe
+launcher_assets
+*.png

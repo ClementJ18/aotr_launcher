@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame, 
     QSplitter, QStyleFactory, QApplication, QMessageBox, QLabel, 
     QComboBox, QLineEdit, QPushButton, QCheckBox, QSlider, QLCDNumber,
-    QPlainTextEdit, QMenuBar, QMainWindow, QFileDialog, QGraphicsDropShadowEffect )
+    QPlainTextEdit, QMenuBar, QMainWindow, QFileDialog, QGraphicsDropShadowEffect,
+    QAbstractButton)
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QFont, QFontDatabase
+from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QFont, QFontDatabase, QPixmap, QPainter
 
 import pickle
 import os.path
@@ -23,8 +24,10 @@ import hashlib
 import json
 
 class Button(QPushButton):
-    def __init__(self, name, parent=None):
+    def __init__(self, name, pixmap, parent=None):
         super(QPushButton, self).__init__(name, parent)
+        self.pixmap = pixmap
+        self.name = name
 
     def enterEvent(self, QEvent):
         shadow = QGraphicsDropShadowEffect(self)
@@ -35,6 +38,13 @@ class Button(QPushButton):
 
     def leaveEvent(self, QEvent):
         self.parent()._generate_shadow(self)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.drawPixmap(event.rect(), self.pixmap)
+
+    def sizeHint(self):
+        return self.pixmap.size()
 
 class Launcher(QMainWindow):
     def __init__(self):
@@ -47,10 +57,12 @@ class Launcher(QMainWindow):
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license."
 
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
+        self.uninstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uninst000.exe")
         self.file_rotwk = "cahfactions.ini"
         self.api_key = "AIzaSyDel_-8cgfVDVBa66eAfETPYx-ATj-jazE"
 
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+        self.credentials = {"installed":{"client_id":"1079743723117-p6ikghhc5976t34ojs85nsg3hrf5f13e.apps.googleusercontent.com","project_id":"quickstart-1566468291948","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"v5Sn4rX-DrdFlCHNJS8feScy","redirect_uris":["urn:ietf:wg:oauth:2.0:oob","http://localhost"]}}
 
         self.init_ui()
 
@@ -62,32 +74,28 @@ class Launcher(QMainWindow):
         button.setGraphicsEffect(shadow)
 
     def init_ui(self):
-        self.launch_btn = Button("Play", self)
+        self.launch_btn = Button("Play", QPixmap('launcher_assets/launcher_play_button.png'), self)
         self.launch_btn.resize(177, 70)
-        self.launch_btn.move(162, 91)
+        self.launch_btn.move(162, 111)
         self.launch_btn.clicked.connect(self.launch)
-        self.launch_btn.setStyleSheet("font-size: 30px; font-family: \"Albertus Medium\";")
         self._generate_shadow(self.launch_btn)
 
-        self.update_btn = Button("Update", self)
+        self.update_btn = Button("Update", QPixmap('launcher_assets/launcher_update_button.png'), self)
         self.update_btn.resize(177, 70)
-        self.update_btn.move(162, 187)
+        self.update_btn.move(162, 207)
         self.update_btn.clicked.connect(self.update)
-        self.update_btn.setStyleSheet("font-size: 30px; font-family: \"Albertus Medium\";")
         self._generate_shadow(self.update_btn)
 
-        self.discord_btn = Button("Discord", self)
+        self.discord_btn = Button("Discord", QPixmap('launcher_assets/launcher_discord_button.png'), self)
         self.discord_btn.resize(87, 34)
-        self.discord_btn.move(207, 283)
+        self.discord_btn.move(207, 303)
         self.discord_btn.clicked.connect(lambda: webbrowser.open_new(self.url_discord))
-        self.discord_btn.setStyleSheet("font-size: 18px; font-family: \"Albertus Medium\";")
         self._generate_shadow(self.discord_btn)
 
-        self.support_btn = Button("Support", self)
+        self.support_btn = Button("Support", QPixmap('launcher_assets/launcher_support_button.png'), self)
         self.support_btn.resize(87, 34)
-        self.support_btn.move(207, 343)
+        self.support_btn.move(207, 363)
         self.support_btn.clicked.connect(lambda: webbrowser.open_new(self.url_support))
-        self.support_btn.setStyleSheet("font-size: 18px; font-family: \"Albertus Medium\";")
         self._generate_shadow(self.support_btn)
         
         self.about_window = QMessageBox()
@@ -96,7 +104,7 @@ class Launcher(QMainWindow):
         self.about_window.setInformativeText(self.about_text_full)
         self.about_window.setStandardButtons(QMessageBox.Ok)
         self.about_window.setWindowTitle("About")
-        self.about_window.setWindowIcon(QIcon("aotr.ico"))
+        self.about_window.setWindowIcon(QIcon("launcher_assets/aotr.ico"))
         self.about_window.buttonClicked.connect(self.about_window.close)
 
         bar = self.menuBar()
@@ -108,11 +116,11 @@ class Launcher(QMainWindow):
         repair_act = bar.addAction('Repair')
         repair_act.triggered.connect(self.repair)
 
-        self.setGeometry(0, 0, 500, 500)
+        self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
-        self.setWindowIcon(QIcon("aotr.ico"))
+        self.setWindowIcon(QIcon("launcher_assets/aotr.ico"))
 
-        oImage = QImage("launcherBG.jpg")
+        oImage = QImage("launcher_assets/launcherBG.jpg")
         sImage = oImage.scaled(QSize(500, 500))  # resize Image to widgets size
         palette = QPalette()
         palette.setBrush(10, QBrush(sImage))  # 10 = WindowRole
@@ -120,13 +128,12 @@ class Launcher(QMainWindow):
 
         self.show()
 
-        # try:
-        #     reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-        #     key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
-        #     self.path_rotwk = winreg.EnumValue(key, 5)[1]
-        # except FileNotFoundError:
-        #     QMessageBox.critical(self, "Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
-        #     self.close()
+        try:
+            reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+            key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
+            self.path_rotwk = winreg.EnumValue(key, 5)[1]
+        except FileNotFoundError:
+            QMessageBox.critical(self, "Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
 
     def launch(self):
         #Launch game with the -mod command
@@ -160,14 +167,9 @@ class Launcher(QMainWindow):
             self.uninstall()
 
     def uninstall(self):
-        try:
-            os.remove(f"{self.path_rotwk}\\{self.file_rotwk}")
-            shutil.rmtree(".")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
-        else:
-            QMessageBox.information(self, "Uninstallation Successful", "Age of the Ring has been succesfully uninstalled. Thanks for playing.", QMessageBox.Ok, QMessageBox.Ok)
-            self.close()
+        os.remove(f"{self.path_rotwk}\\{self.file_rotwk}")
+        subprocess.run([f"{self.uninstaller}"])
+        self.close()
 
     def hash_file(self, path):
         hasher = hashlib.md5()
@@ -204,7 +206,7 @@ class Launcher(QMainWindow):
 
         # Call the Drive v3 API
         results = service.files().list(
-            q="'13uS0Vd8qvoK6WBa4Fz4J-9w2pKib464v' in parents",
+            q="'11B-ugfKzzjjtFZ4fYfxwQaiu2BqKPkTq' in parents",
             pageSize=10, fields="*").execute()
         files = results.get('files', [])
         tree = next((file for file in files if file['name'] == "tree.json"), None)

@@ -11,41 +11,74 @@ import json
 import shutil
 import hashlib
 
-class Patcher(QWidget):
+class Patcher(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.help_text_full = """The Patch Maker contains three major areas, the patch directory selection, the tree.json selection and the flatten button. Once you've filled out everything and you click the "Flatten" button the patch maker will create a "patch" folder next to the folder you've selected and using the tree.json you have provided will find all the files that have been modified since the last patch and copy them to that folder. The tree.json selection is optional but very useful, it will compare the files with the tree.json file you provide to figure out which files have been changed since the last patch so that you only have to upload the change files instead of the entire directory all over again. If you do not have a tree.json do not worry, the patch maker is perfectly capable of generating one on its own, just leave the area blank and the patch maker will generate a new tree.json. Steps to use the patch maker:<ol><li>Select the AOTR directory containing all the files for the next update.</li><li>Optionally, select the tree.json that was generated during the making of the previous patch.</li><li>Click flatten.<ul><li>If you have selected a valid tree.json then the patch maker will move over all the files that have been edited since the time that the selected tree.json was created</li><li>If you have not selected a tree.json, the patch maker will copy over everyfile that in the selected directory.</ul></ol>"""
 
         self.init_ui()
 
     def init_ui(self):
-        QLabel("Select an directory to flatten:", self).move(25, 30)
+        label = QLabel("Select an directory to flatten:", self)
+        label.move(25, 55)
+        label.adjustSize()
+
         self.directory = QLineEdit(self)
         self.directory.resize(600, 30)
-        self.directory.move(25, 55)
+        self.directory.move(25, 80)
 
         self.pick_directory_btn = QPushButton("...", self)
         self.pick_directory_btn.resize(25, 25)
-        self.pick_directory_btn.move(635, 60)
+        self.pick_directory_btn.move(635, 85)
         self.pick_directory_btn.clicked.connect(self.pick_directory)
 
-        QLabel("Select an optional tree.json:", self).move(25, 90)
+        label = QLabel("Select an optional tree.json:", self)
+        label.move(25, 115)
+        label.adjustSize()
+
         self.tree = QLineEdit(self)
         self.tree.resize(600, 30)
-        self.tree.move(25, 115)
+        self.tree.move(25, 140)
 
         self.pick_tree_btn = QPushButton("...", self)
         self.pick_tree_btn.resize(25, 25)
-        self.pick_tree_btn.move(635, 120)
+        self.pick_tree_btn.move(635, 145)
         self.pick_tree_btn.clicked.connect(self.pick_tree)
 
         self.flatten_btn = QPushButton("Flatten", self)
         self.flatten_btn.resize(250, 100)
-        self.flatten_btn.move(225, 175)
+        self.flatten_btn.move(225, 200)
         self.flatten_btn.clicked.connect(self.flatten)
         self.flatten_btn.setEnabled(False)
         self.flatten_btn.setToolTip("Select an directory to flatten to unlock the button")
 
-        self.setGeometry(0, 0, 700, 300)
+        self.about_window = QMessageBox()
+        self.about_window.setIcon(QMessageBox.Information)
+        self.about_window.setText("About the AOTR Patch Maker")
+        self.about_window.setInformativeText("The Patch Maker is a tool which \"flattens\" the Age of the Ring directory and prepares it for upload so that the launcher can work out which files to download more easily.")
+        self.about_window.setStandardButtons(QMessageBox.Ok)
+        self.about_window.setWindowTitle("About")
+        self.about_window.setWindowIcon(QIcon("aotr.ico"))
+        self.about_window.buttonClicked.connect(self.about_window.close)
+
+        self.help_window = QMessageBox()
+        self.help_window.setIcon(QMessageBox.Information)
+        self.help_window.setText("How to use the Patch Maker")
+        self.help_window.setInformativeText(self.help_text_full)
+        self.help_window.setStandardButtons(QMessageBox.Ok)
+        self.help_window.setWindowTitle("About")
+        self.help_window.setWindowIcon(QIcon("aotr.ico"))
+        self.help_window.buttonClicked.connect(self.help_window.close)
+
+        bar = self.menuBar()
+        bar.setStyleSheet("QMenuBar {background-color: white;}")
+        about_act = bar.addAction('About')
+        about_act.triggered.connect(self.about_window.show)
+        uninstall_act = bar.addAction('Help')
+        uninstall_act.triggered.connect(self.help_window.show)
+
+        self.setGeometry(0, 0, 700, 350)
         self.setWindowTitle('Patch Maker')
         self.setWindowIcon(QIcon("aotr.ico"))
 
@@ -78,11 +111,7 @@ class Patcher(QWidget):
             with open(self.tree.text(), "r") as f:
                     old_tree = json.load(f)
         except FileNotFoundError:
-            try:
-                with open(os.path.join(self.directory.text(), "tree.json"), "r") as f:
-                    old_tree = json.load(f)
-            except FileNotFoundError:
-                old_tree = []
+            old_tree = []
 
         tree = []
         new_dir = os.path.join(self.directory.text(), '..', 'patch') 

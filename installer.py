@@ -11,6 +11,7 @@ import winreg
 import os
 import shutil
 import win32com.client
+import unrar
 
 class Installer(QWidget):
     def __init__(self):
