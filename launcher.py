@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
     QSplitter, QStyleFactory, QApplication, QMessageBox, QLabel, 
     QComboBox, QLineEdit, QPushButton, QCheckBox, QSlider, QLCDNumber,
     QPlainTextEdit, QMenuBar, QMainWindow, QFileDialog, QGraphicsDropShadowEffect,
-    QAbstractButton)
-from PyQt5.QtCore import Qt, QSize
+    QAbstractButton, QProgressBar)
+from PyQt5.QtCore import Qt, QSize, QCoreApplication
 from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QFont, QFontDatabase, QPixmap, QPainter
 
 import pickle
@@ -46,6 +46,25 @@ class Button(QPushButton):
     def sizeHint(self):
         return self.pixmap.size()
 
+class ProgressBar(QMainWindow):
+    def __init__(self, parent=None):
+        super(ProgressBar, self).__init__(parent)
+
+        self.init_ui()
+
+    def init_ui(self):
+        self.label = QLabel("Gathering file data...", self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.move(50, 50)
+
+        self.bar = QProgressBar(self)
+        self.bar.move(50, 100)
+        self.bar.resize(600, 25)      
+
+        self.setFixedSize(500, 200)
+        self.setWindowTitle('Update Progress')
+        self.setWindowIcon(QIcon("launcher_assets/aotr.ico"))
+
 class Launcher(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -62,7 +81,6 @@ class Launcher(QMainWindow):
         self.api_key = "AIzaSyDel_-8cgfVDVBa66eAfETPYx-ATj-jazE"
 
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
-        self.credentials = {"installed":{"client_id":"1079743723117-p6ikghhc5976t34ojs85nsg3hrf5f13e.apps.googleusercontent.com","project_id":"quickstart-1566468291948","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"v5Sn4rX-DrdFlCHNJS8feScy","redirect_uris":["urn:ietf:wg:oauth:2.0:oob","http://localhost"]}}
 
         self.init_ui()
 
@@ -107,6 +125,9 @@ class Launcher(QMainWindow):
         self.about_window.setWindowIcon(QIcon("launcher_assets/aotr.ico"))
         self.about_window.buttonClicked.connect(self.about_window.close)
 
+        self.progress_bar = ProgressBar(self)
+        self.progress_bar.show()
+
         bar = self.menuBar()
         bar.setStyleSheet("QMenuBar {background-color: white;}")
         about_act = bar.addAction('About')
@@ -138,20 +159,20 @@ class Launcher(QMainWindow):
     def launch(self):
         #Launch game with the -mod command
         try:
-            subprocess.run([f"{self.path_rotwk}\\lotrbfme2ep1.exe", "-mod", f"{self.path_aotr}"])
-            self.close()
+            subprocess.Popen([f"{self.path_rotwk}\\lotrbfme2ep1.exe", "-mod", f"{self.path_aotr}"])
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def update(self):
-        try:
-            self.file_fixer()
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
-        else:
-            reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-            if reply == QMessageBox.Yes:
-                webbrowser.open(os.path.join(self.path_aotr, "readme.txt"))
+        self.file_fixer()
+        # try:
+        #     self.file_fixer()
+        # except Exception as e:
+        #     QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+        # else:
+        #     reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        #     if reply == QMessageBox.Yes:
+        #         webbrowser.open(os.path.join(self.path_aotr, "readme.txt"))
 
     def repair(self):
         try:
@@ -180,13 +201,8 @@ class Launcher(QMainWindow):
         return hasher.hexdigest()
 
     def file_fixer(self):
-        """Shows basic usage of the Drive v3 API.
-        Prints the names and ids of the first 10 files the user has access to.
-        """
+        self.progress_bar.show()
         creds = None
-        # The file token.pickle stores the user's access and refresh tokens, and is
-        # created automatically when the authorization flow completes for the first
-        # time.
         if os.path.exists('token.pickle'):
             with open('token.pickle', 'rb') as token:
                 creds = pickle.load(token)
@@ -194,26 +210,42 @@ class Launcher(QMainWindow):
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', self.scopes)
-                creds = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-            with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
 
         service = build('drive', 'v3', credentials=creds)
 
         # Call the Drive v3 API
-        results = service.files().list(
-            q="'11B-ugfKzzjjtFZ4fYfxwQaiu2BqKPkTq' in parents",
-            pageSize=10, fields="*").execute()
-        files = results.get('files', [])
-        tree = next((file for file in files if file['name'] == "tree.json"), None)
-        r = requests.get(tree["webContentLink"])
-        tree = json.loads(r.content.decode('utf-8'))
+        files_service = service.files()
+        request = files_service.list(
+            q="'1zfrSbWk47tAXp7BMRt_H2SOfbemfLvQF' in parents",
+            pageSize=999, fields="*")
 
+
+        files = []
+        counter = 0
+        while request is not None:
+            QCoreApplication.processEvents()
+            result = request.execute()
+            counter += 1
+            self.progress_bar.bar.setValue((counter/200)*100)
+            # print(counter)
+            # print(len(result.get("files", [])))
+            files.extend(result.get("files", []))
+            request = files_service.list_next(request, result)
+
+        try:
+            print(files)
+            tree = next((file for file in files if file['name'] == "tree.json"), None)
+            r = requests.get(tree["files"][0]["webContentLink"])
+        except TypeError:
+            raise TypeError("Did not find tree.json, please report this bug to the discord.")
+
+        self.progress_bar.label.setText("Downloading files...")
+        tree = json.loads(r.content.decode('utf-8'))
+        tree_len = len(tree)
+        print(tree)
         for file in tree:
+            QCoreApplication.processEvents()
+            self.progress_bar.bar.setValue((tree.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
             if not os.path.exists(full_path):
                 #download new files

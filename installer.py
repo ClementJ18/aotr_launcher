@@ -11,7 +11,6 @@ import winreg
 import os
 import shutil
 import win32com.client
-import unrar
 
 class Installer(QWidget):
     def __init__(self):
@@ -20,7 +19,7 @@ class Installer(QWidget):
         self.file_path = "aotr.zip"
         self.rotwk_file_name = "cahfactions.ini"
         self.launcher_name = "launcher.exe"
-        self.shortcut_icon = "aotr.ico"
+        self.shortcut_icon = "launcher_assets/aotr.ico"
 
         self.init_ui()
 
@@ -74,6 +73,10 @@ class Installer(QWidget):
     def pick_directory(self):
         text = str(QFileDialog.getExistingDirectory(self, f"Select installation directory"))
         if text != "":
+            if text == self.path_rotwk:
+                QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.")
+                return
+
             self.directory.setText(f"{text}/aotr")
             self.install_btn.setEnabled(True)       
 
@@ -84,7 +87,7 @@ class Installer(QWidget):
 
         #check that we are on ROTWK 2.02 version whatever is currently the supported version(v8 rn)
         if not os.path.isfile(f'{self.path_rotwk}\\##########202_v8.0.0.big'):
-            QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated. Note that ROTWK needs to be set to 2.02 in order to play the mod", QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated. Note that ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok, QMessageBox.Ok)
 
     def installer(self):
         #2. Extract a single file in the ROTWK folder
@@ -127,8 +130,9 @@ class Installer(QWidget):
             shell = win32com.client.Dispatch("WScript.Shell")
             shortcut = shell.CreateShortCut(path)
             shortcut.Targetpath = target
-            shortcut.IconLocation = self.shortcut_icon
+            shortcut.IconLocation = os.path.join(self.directory.text(), self.shortcut_icon)
             shortcut.WindowStyle = 7 # 7 - Minimized, 3 - Maximized, 1 - Normal
+            shortcut.WorkingDirectory = self.directory.text()
             shortcut.save()
         except Exception as e:
             raise        
