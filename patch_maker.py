@@ -124,6 +124,9 @@ class Patcher(QMainWindow):
 
         for path, _, files in os.walk(self.directory.text()):
             for name in files:
+                if name in ["desktop.ini"]:
+                    continue
+
                 file_path = os.path.join(path, name)
                 md5 = self.hash_file(file_path)
                 try:
@@ -136,15 +139,10 @@ class Patcher(QMainWindow):
                     try:
                         shutil.copy(os.path.join(path, name), os.path.join(new_dir, name))
                     except shutil.Error:
-                        pass
+                        QMessageBox.critical(self, "Error", f"{str(e)}\n{name}")
 
         with open(os.path.join(new_dir, "tree.json"), "w+") as f:
             json.dump(tree, f)
-
-        # for directory in os.listdir(self.directory.text()):
-        #     file_path = os.path.join(self.directory.text(), directory)
-        #     if os.path.isdir(file_path):
-        #         shutil.rmtree(file_path)
 
         QMessageBox.information(self, "Done", "Finished flattening")
 

@@ -7,9 +7,7 @@ from PyQt5.QtCore import Qt, QSize, QCoreApplication
 from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QFont, QFontDatabase, QPixmap, QPainter
 
 import pickle
-import os.path
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
 
@@ -19,7 +17,6 @@ import webbrowser
 import os
 import subprocess
 import winreg
-import shutil
 import hashlib
 import json
 
@@ -56,14 +53,15 @@ class ProgressBar(QMainWindow):
         self.label = QLabel("Gathering file data...", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.move(50, 50)
+        self.label.resize(self.label.sizeHint())
 
         self.bar = QProgressBar(self)
         self.bar.move(50, 100)
-        self.bar.resize(600, 25)      
+        self.bar.resize(400, 25)      
 
         self.setFixedSize(500, 200)
         self.setWindowTitle('Update Progress')
-        self.setWindowIcon(QIcon("launcher_assets/aotr.ico"))
+        self.setWindowIcon(QIcon("launcher_files/aotr.ico"))
 
 class Launcher(QMainWindow):
     def __init__(self):
@@ -76,7 +74,7 @@ class Launcher(QMainWindow):
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license."
 
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
-        self.uninstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uninst000.exe")
+        self.uninstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unins000.exe")
         self.file_rotwk = "cahfactions.ini"
         self.api_key = "AIzaSyDel_-8cgfVDVBa66eAfETPYx-ATj-jazE"
 
@@ -92,25 +90,25 @@ class Launcher(QMainWindow):
         button.setGraphicsEffect(shadow)
 
     def init_ui(self):
-        self.launch_btn = Button("Play", QPixmap('launcher_assets/launcher_play_button.png'), self)
+        self.launch_btn = Button("Play", QPixmap('launcher_files/launcher_play_button.png'), self)
         self.launch_btn.resize(177, 70)
         self.launch_btn.move(162, 111)
         self.launch_btn.clicked.connect(self.launch)
         self._generate_shadow(self.launch_btn)
 
-        self.update_btn = Button("Update", QPixmap('launcher_assets/launcher_update_button.png'), self)
+        self.update_btn = Button("Update", QPixmap('launcher_files/launcher_update_button.png'), self)
         self.update_btn.resize(177, 70)
         self.update_btn.move(162, 207)
         self.update_btn.clicked.connect(self.update)
         self._generate_shadow(self.update_btn)
 
-        self.discord_btn = Button("Discord", QPixmap('launcher_assets/launcher_discord_button.png'), self)
+        self.discord_btn = Button("Discord", QPixmap('launcher_files/launcher_discord_button.png'), self)
         self.discord_btn.resize(87, 34)
         self.discord_btn.move(207, 303)
         self.discord_btn.clicked.connect(lambda: webbrowser.open_new(self.url_discord))
         self._generate_shadow(self.discord_btn)
 
-        self.support_btn = Button("Support", QPixmap('launcher_assets/launcher_support_button.png'), self)
+        self.support_btn = Button("Support", QPixmap('launcher_files/launcher_support_button.png'), self)
         self.support_btn.resize(87, 34)
         self.support_btn.move(207, 363)
         self.support_btn.clicked.connect(lambda: webbrowser.open_new(self.url_support))
@@ -122,11 +120,11 @@ class Launcher(QMainWindow):
         self.about_window.setInformativeText(self.about_text_full)
         self.about_window.setStandardButtons(QMessageBox.Ok)
         self.about_window.setWindowTitle("About")
-        self.about_window.setWindowIcon(QIcon("launcher_assets/aotr.ico"))
+        self.about_window.setWindowIcon(QIcon("launcher_files/aotr.ico"))
         self.about_window.buttonClicked.connect(self.about_window.close)
 
         self.progress_bar = ProgressBar(self)
-        self.progress_bar.show()
+        # self.progress_bar.show()
 
         bar = self.menuBar()
         bar.setStyleSheet("QMenuBar {background-color: white;}")
@@ -139,9 +137,9 @@ class Launcher(QMainWindow):
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
-        self.setWindowIcon(QIcon("launcher_assets/aotr.ico"))
+        self.setWindowIcon(QIcon("launcher_files/aotr.ico"))
 
-        oImage = QImage("launcher_assets/launcherBG.jpg")
+        oImage = QImage("launcher_files/launcherBG.jpg")
         sImage = oImage.scaled(QSize(500, 500))  # resize Image to widgets size
         palette = QPalette()
         palette.setBrush(10, QBrush(sImage))  # 10 = WindowRole
@@ -164,15 +162,15 @@ class Launcher(QMainWindow):
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def update(self):
-        self.file_fixer()
-        # try:
-        #     self.file_fixer()
-        # except Exception as e:
-        #     QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
-        # else:
-        #     reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-        #     if reply == QMessageBox.Yes:
-        #         webbrowser.open(os.path.join(self.path_aotr, "readme.txt"))
+        # self.file_fixer()
+        try:
+            self.file_fixer()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+        else:
+            reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            if reply == QMessageBox.Yes:
+                webbrowser.open(os.path.join(self.path_aotr, "AgeOfTheRing_README.rtf"))
 
     def repair(self):
         try:
@@ -189,7 +187,7 @@ class Launcher(QMainWindow):
 
     def uninstall(self):
         os.remove(f"{self.path_rotwk}\\{self.file_rotwk}")
-        subprocess.run([f"{self.uninstaller}"])
+        subprocess.Popen([f"{self.uninstaller}"])
         self.close()
 
     def hash_file(self, path):
@@ -203,9 +201,8 @@ class Launcher(QMainWindow):
     def file_fixer(self):
         self.progress_bar.show()
         creds = None
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
+        with open('launcher_files/token.pickle', 'rb') as token:
+            creds = pickle.load(token)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
@@ -215,10 +212,7 @@ class Launcher(QMainWindow):
 
         # Call the Drive v3 API
         files_service = service.files()
-        request = files_service.list(
-            q="'1zfrSbWk47tAXp7BMRt_H2SOfbemfLvQF' in parents",
-            pageSize=999, fields="*")
-
+        request = files_service.list(q="'1zfrSbWk47tAXp7BMRt_H2SOfbemfLvQF' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
 
         files = []
         counter = 0
@@ -226,41 +220,51 @@ class Launcher(QMainWindow):
             QCoreApplication.processEvents()
             result = request.execute()
             counter += 1
-            self.progress_bar.bar.setValue((counter/200)*100)
+            self.progress_bar.bar.setValue((counter/20)*100)
             # print(counter)
             # print(len(result.get("files", [])))
             files.extend(result.get("files", []))
             request = files_service.list_next(request, result)
 
         try:
-            print(files)
             tree = next((file for file in files if file['name'] == "tree.json"), None)
-            r = requests.get(tree["files"][0]["webContentLink"])
+            r = requests.get(tree["webContentLink"])
         except TypeError:
             raise TypeError("Did not find tree.json, please report this bug to the discord.")
 
         self.progress_bar.label.setText("Downloading files...")
+        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         tree = json.loads(r.content.decode('utf-8'))
         tree_len = len(tree)
-        print(tree)
+        # print(tree)
         for file in tree:
             QCoreApplication.processEvents()
             self.progress_bar.bar.setValue((tree.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
+            download = next((f for f in files if f['name'] == file["name"]), None)
+            if download is None:
+                 QMessageBox.critical(self, "Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
+                 continue
+
             if not os.path.exists(full_path):
                 #download new files
-                download = next((f for f in files if f['name'] == file["name"]), None)
                 r = requests.get(download["webContentLink"])
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
                 with open(full_path, "wb") as f:
                     f.write(r.content)
             else:
                 md5 = self.hash_file(full_path)
                 if md5 != file["hash"]:
                     #update existing files
-                    download = next((f for f in files if f['name'] == file["name"]), None)
                     r = requests.get(download["webContentLink"])
+                    os.makedirs(os.path.dirname(full_path), exist_ok=True)
                     with open(full_path, "wb") as f:
                         f.write(r.content)
+
+        self.progress_bar.label.setText("Gathering file data...")
+        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
+        self.progress_bar.bar.setValue(0)
+        self.progress_bar.hide()
 
     def about(self):
         self.about_window.show()

@@ -74,7 +74,7 @@ class Installer(QWidget):
         text = str(QFileDialog.getExistingDirectory(self, f"Select installation directory"))
         if text != "":
             if text == self.path_rotwk:
-                QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.")
+                QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.", QMessageBox.Ok, QMessageBox.Ok)
                 return
 
             self.directory.setText(f"{text}/aotr")
