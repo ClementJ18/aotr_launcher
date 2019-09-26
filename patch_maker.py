@@ -150,7 +150,7 @@ class Patcher(QMainWindow):
             self.log.write("tree.json not specified, generating blank one\n")
             old_tree = []
 
-        tree = []
+        tree = {}
         new_dir = os.path.join(self.directory.text(), '..', 'release') 
         try:
             self.log.write("Creating release directory one level up\n")
@@ -169,11 +169,11 @@ class Patcher(QMainWindow):
                 subdir_path = file_path.replace(f"{self.directory.text()}\\", '')
                 md5 = self.hash_file(file_path)
                 try:
-                    old_md5 = next((file for file in old_tree if file['path'] == subdir_path), None)["hash"]
-                except TypeError:
+                    old_md5 = old_tree[subdir_path]["hash"]
+                except KeyError:
                     old_md5 = ""
 
-                tree.append({"name": name, "path": subdir_path, "hash": md5})
+                tree[subdir_path] = {"name": name, "path": subdir_path, "hash": md5}
                 self.log.write(f"{file_path}: Old '{old_md5}' vs '{md5}' New\n")
                 if md5 != old_md5:
                     try:

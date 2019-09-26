@@ -20,6 +20,7 @@ import winreg
 import hashlib
 import json
 import logging
+import datetime
 
 logging.basicConfig(level=logging.DEBUG, filename="launcher_files/launcher.log", filemode="w")
 
@@ -82,6 +83,16 @@ class Launcher(QMainWindow):
         self.folder_id = '1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb'
 
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+
+        creds = None
+        with open('launcher_files/token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+
+        service = build('drive', 'v3', credentials=creds)
+        self.files_service = service.files()
 
         self.init_ui()
 
@@ -204,19 +215,12 @@ class Launcher(QMainWindow):
 
     def file_fixer(self):
         self.progress_bar.show()
-        creds = None
-        with open('launcher_files/token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-        # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+        #check if update is possible by making sure that files aren't currently being uploaded.
+        # modified_by = self.files_service.get(fieldId="1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb").execute()["modifiedTime"]
+        # if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
+        #     raise ValueError("Cannot currently update, please try again later.")
 
-        service = build('drive', 'v3', credentials=creds)
-
-        # Call the Drive v3 API
-        files_service = service.files()
-        request = files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
+        request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
 
         files = []
         counter = 0
@@ -226,7 +230,7 @@ class Launcher(QMainWindow):
             counter += 1
             self.progress_bar.bar.setValue((counter/20)*100)
             files.extend(result.get("files", []))
-            request = files_service.list_next(request, result)
+            request = self.files_service.list_next(request, result)
 
         try:
             tree = next((file for file in files if file['name'] == "tree.json"), None)
@@ -238,7 +242,7 @@ class Launcher(QMainWindow):
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         tree = json.loads(r.content.decode('utf-8'))
         tree_len = len(tree)
-        for file in tree:
+        for file in tree.values():
             QCoreApplication.processEvents()
             self.progress_bar.bar.setValue((tree.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
@@ -266,6 +270,26 @@ class Launcher(QMainWindow):
                     logging.debug(f"Downloaded {file['path']}")
                 else:
                     logging.debug(f"Did not download file {file['path']}")
+
+        #figure out which things need to get removed
+        self.progress_bar.label.setText("Cleanup...")
+        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
+        self.progress_bar.bar.setValue(0)
+        counter = 0
+        for path, _, files in os.walk(self.directory.text()):
+            for name in files:
+                QCoreApplication.processEvents()
+                if name in ["desktop.ini"]:
+                    continue
+
+                file_path = os.path.join(path, name)
+                subdir_path = file_path.replace(f"{self.path_aotr}\\", '')
+
+                if subdir_path not in tree:
+                    logging.debug(f"Detected foreign file: {subdir_path}")
+                    os.remove(file_path)
+            counter += 1
+            self.progress_bar.bar.setValue((counter%20)/20)
 
         self.progress_bar.label.setText("Gathering file data...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
