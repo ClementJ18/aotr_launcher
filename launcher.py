@@ -242,14 +242,15 @@ class Launcher(QMainWindow):
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         tree = json.loads(r.content.decode('utf-8'))
         tree_len = len(tree)
-        for file in tree.values():
+        tree_values = list(tree.values())
+        for file in tree_values:
             QCoreApplication.processEvents()
-            self.progress_bar.bar.setValue((tree.index(file)/tree_len)*100)
+            self.progress_bar.bar.setValue((tree_values.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
             download = next((f for f in files if f['name'] == file["path"].replace("\\", ".")), None)
             if download is None:
-                 QMessageBox.critical(self, "Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
-                 continue
+                QMessageBox.critical(self, "Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
+                continue
 
             if not os.path.exists(full_path):
                 #download new files
@@ -276,7 +277,7 @@ class Launcher(QMainWindow):
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         self.progress_bar.bar.setValue(0)
         counter = 0
-        for path, _, files in os.walk(self.directory.text()):
+        for path, _, files in os.walk(self.path_aotr):
             for name in files:
                 QCoreApplication.processEvents()
                 if name in ["desktop.ini"]:

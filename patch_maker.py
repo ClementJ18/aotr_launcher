@@ -148,7 +148,7 @@ class Patcher(QMainWindow):
                 old_tree = json.load(f)
         except FileNotFoundError:
             self.log.write("tree.json not specified, generating blank one\n")
-            old_tree = []
+            old_tree = {}
 
         tree = {}
         new_dir = os.path.join(self.directory.text(), '..', 'release') 
