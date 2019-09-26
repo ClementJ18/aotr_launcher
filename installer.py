@@ -73,7 +73,7 @@ class Installer(QWidget):
     def pick_directory(self):
         text = str(QFileDialog.getExistingDirectory(self, f"Select installation directory"))
         if text != "":
-            if text == self.path_rotwk:
+            if text == self.path_rotwk.replace("\\", "/"):
                 QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.", QMessageBox.Ok, QMessageBox.Ok)
                 return
 
@@ -87,15 +87,22 @@ class Installer(QWidget):
 
         #check that we are on ROTWK 2.02 version whatever is currently the supported version(v8 rn)
         if not os.path.isfile(f'{self.path_rotwk}\\##########202_v8.0.0.big'):
-            QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated. Note that ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok, QMessageBox.Ok)
+            reply = QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated, it is recommended to have 2.02 enabled when installing the mod. Note that ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok)
+
+            if reply == QMessageBox.cancel:
+                return False
+
+        return True
 
     def installer(self):
         #2. Extract a single file in the ROTWK folder
         #3. Extract the rest of the files into the AOTR folder
         #4. Generate shortcut???
+        if not self.patch_check():
+            return
+            
         self.install_btn.hide()
         self.progress_bar.show()
-        self.patch_check()
 
         try:
             self.installation()
@@ -134,6 +141,16 @@ class Installer(QWidget):
             shortcut.WindowStyle = 7 # 7 - Minimized, 3 - Maximized, 1 - Normal
             shortcut.WorkingDirectory = self.directory.text()
             shortcut.save()
+
+            #run as admin
+            with open(path, "rb") as f:
+                ba = bytearray(f.read())
+
+            ba[0x15] = ba[0x15] | 0x20
+
+            with open(path, "wb") as f:
+                f.write(ba)
+
         except Exception as e:
             raise        
 

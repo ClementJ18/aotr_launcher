@@ -19,6 +19,9 @@ import subprocess
 import winreg
 import hashlib
 import json
+import logging
+
+logging.basicConfig(level=logging.DEBUG, filename="launcher_files/launcher.log", filemode="w")
 
 class Button(QPushButton):
     def __init__(self, name, pixmap, parent=None):
@@ -76,7 +79,7 @@ class Launcher(QMainWindow):
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
         self.uninstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unins000.exe")
         self.file_rotwk = "cahfactions.ini"
-        self.api_key = "AIzaSyDel_-8cgfVDVBa66eAfETPYx-ATj-jazE"
+        self.folder_id = '1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb'
 
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
@@ -167,6 +170,7 @@ class Launcher(QMainWindow):
             self.file_fixer()
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+            self.progress_bar.hide()
         else:
             reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
             if reply == QMessageBox.Yes:
@@ -212,7 +216,7 @@ class Launcher(QMainWindow):
 
         # Call the Drive v3 API
         files_service = service.files()
-        request = files_service.list(q="'1zfrSbWk47tAXp7BMRt_H2SOfbemfLvQF' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
+        request = files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
 
         files = []
         counter = 0
@@ -221,8 +225,6 @@ class Launcher(QMainWindow):
             result = request.execute()
             counter += 1
             self.progress_bar.bar.setValue((counter/20)*100)
-            # print(counter)
-            # print(len(result.get("files", [])))
             files.extend(result.get("files", []))
             request = files_service.list_next(request, result)
 
@@ -236,12 +238,11 @@ class Launcher(QMainWindow):
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         tree = json.loads(r.content.decode('utf-8'))
         tree_len = len(tree)
-        # print(tree)
         for file in tree:
             QCoreApplication.processEvents()
             self.progress_bar.bar.setValue((tree.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
-            download = next((f for f in files if f['name'] == file["name"]), None)
+            download = next((f for f in files if f['name'] == file["path"].replace("\\", ".")), None)
             if download is None:
                  QMessageBox.critical(self, "Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
                  continue
@@ -252,6 +253,8 @@ class Launcher(QMainWindow):
                 os.makedirs(os.path.dirname(full_path), exist_ok=True)
                 with open(full_path, "wb") as f:
                     f.write(r.content)
+
+                logging.debug(f"Downloaded {file['path']}")
             else:
                 md5 = self.hash_file(full_path)
                 if md5 != file["hash"]:
@@ -260,6 +263,9 @@ class Launcher(QMainWindow):
                     os.makedirs(os.path.dirname(full_path), exist_ok=True)
                     with open(full_path, "wb") as f:
                         f.write(r.content)
+                    logging.debug(f"Downloaded {file['path']}")
+                else:
+                    logging.debug(f"Did not download file {file['path']}")
 
         self.progress_bar.label.setText("Gathering file data...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
