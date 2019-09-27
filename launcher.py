@@ -21,6 +21,7 @@ import hashlib
 import json
 import logging
 import datetime
+import traceback
 
 logging.basicConfig(level=logging.DEBUG, filename="launcher_files/launcher.log", filemode="w")
 
@@ -215,11 +216,13 @@ class Launcher(QMainWindow):
 
     def file_fixer(self):
         self.progress_bar.show()
-        #check if update is possible by making sure that files aren't currently being uploaded.
-        # modified_by = self.files_service.get(fieldId="1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb").execute()["modifiedTime"]
-        # if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
-        #     raise ValueError("Cannot currently update, please try again later.")
+        # check if update is possible by making sure that files aren't currently being uploaded.
+        folder = self.files_service.get(fileId="1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb", fields="*").execute()
+        modified_by = datetime.datetime.strptime(folder["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fz")
+        if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
+            raise ValueError("Cannot currently update, please try again later.")
 
+        raise ValueError("Everything good")
         request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
 
         files = []
@@ -301,7 +304,12 @@ class Launcher(QMainWindow):
         self.about_window.show()
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    app.setStyle('Fusion')
-    gui = Launcher()
-    sys.exit(app.exec_())
+    try:
+        app = QApplication(sys.argv)
+        app.setStyle('Fusion')
+        gui = Launcher()
+        app.exec_()
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        sam =  traceback.format_exception(exc_type, exc_value, exc_traceback)
+        logging.error(sam)
