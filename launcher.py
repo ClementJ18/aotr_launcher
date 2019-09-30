@@ -81,7 +81,7 @@ class Launcher(QMainWindow):
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
         self.uninstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unins000.exe")
         self.file_rotwk = "cahfactions.ini"
-        self.folder_id = '1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb'
+        self.folder_id = '1LgPndLiRyS93Sl9HwNCTOnKh7_Kmop4D'
 
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
@@ -94,6 +94,9 @@ class Launcher(QMainWindow):
 
         service = build('drive', 'v3', credentials=creds)
         self.files_service = service.files()
+
+        service = build('driveactivity', 'v2', credentials=creds)
+        self.activity_service = service.activity()
 
         self.init_ui()
 
@@ -169,6 +172,9 @@ class Launcher(QMainWindow):
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
 
+        request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
+        r = requests.get(request["files"][0]["webContentLink"])
+
     def launch(self):
         #Launch game with the -mod command
         try:
@@ -179,14 +185,17 @@ class Launcher(QMainWindow):
     def update(self):
         # self.file_fixer()
         try:
-            self.file_fixer()
+            updated = self.file_fixer()
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
             self.progress_bar.hide()
         else:
-            reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-            if reply == QMessageBox.Yes:
-                webbrowser.open(os.path.join(self.path_aotr, "AgeOfTheRing_README.rtf"))
+            if updated:
+                reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+                if reply == QMessageBox.Yes:
+                    webbrowser.open(os.path.join(self.path_aotr, "AgeOfTheRing_README.rtf"))
+            else:
+                QMessageBox.information(self, "No Update", "No new update was available, no files have been modified.", QMessageBox.Ok, QMessageBox.Ok)
 
     def repair(self):
         try:
@@ -215,14 +224,21 @@ class Launcher(QMainWindow):
         return hasher.hexdigest()
 
     def file_fixer(self):
+        self.progress_bar.label.setText("Gathering file data...")
+        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
+        self.progress_bar.bar.setValue(0)
         self.progress_bar.show()
         # check if update is possible by making sure that files aren't currently being uploaded.
         folder = self.files_service.get(fileId="1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb", fields="*").execute()
+        # results = self.activity_service.query(body={
+        #     'pageSize': 10
+        # }).execute()
+        # activities = results.get('activities', [])
+
         modified_by = datetime.datetime.strptime(folder["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fz")
-        if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
+        if modified_by > (datetime.datetime.now() - datetime.timedelta(hours=2)):
             raise ValueError("Cannot currently update, please try again later.")
 
-        raise ValueError("Everything good")
         request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
 
         files = []
@@ -241,11 +257,12 @@ class Launcher(QMainWindow):
         except TypeError:
             raise TypeError("Did not find tree.json, please report this bug to the discord.")
 
-        self.progress_bar.label.setText("Downloading files...")
+        self.progress_bar.label.setText("Verifying file integrity...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         tree = json.loads(r.content.decode('utf-8'))
-        tree_len = len(tree)
-        tree_values = list(tree.values())
+        tree_len = len(tree["files"])
+        tree_values = list(tree["files"].values())
+        to_download = []
         for file in tree_values:
             QCoreApplication.processEvents()
             self.progress_bar.bar.setValue((tree_values.index(file)/tree_len)*100)
@@ -257,23 +274,31 @@ class Launcher(QMainWindow):
 
             if not os.path.exists(full_path):
                 #download new files
-                r = requests.get(download["webContentLink"])
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "wb") as f:
-                    f.write(r.content)
-
+                to_download.append({"link": download["webContentLink"], "path": full_path})
                 logging.debug(f"Downloaded {file['path']}")
             else:
                 md5 = self.hash_file(full_path)
                 if md5 != file["hash"]:
                     #update existing files
-                    r = requests.get(download["webContentLink"])
-                    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                    with open(full_path, "wb") as f:
-                        f.write(r.content)
+                    to_download.append({"link": download["webContentLink"], "path": full_path})
                     logging.debug(f"Downloaded {file['path']}")
                 else:
                     logging.debug(f"Did not download file {file['path']}")
+
+        if not to_download:
+            self.progress_bar.hide()
+            return False
+
+        #actually downloadfiles
+        self.progress_bar.label.setText("Downloading files...")
+        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
+        for file in to_download:
+            QCoreApplication.processEvents()
+            self.progress_bar.bar.setValue((to_download.index(file)/len(to_download))*100)
+            r = requests.get(file["link"])
+            os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
+            with open(file["path"], "wb") as f:
+                f.write(r.content)
 
         #figure out which things need to get removed
         self.progress_bar.label.setText("Cleanup...")
@@ -289,16 +314,14 @@ class Launcher(QMainWindow):
                 file_path = os.path.join(path, name)
                 subdir_path = file_path.replace(f"{self.path_aotr}\\", '')
 
-                if subdir_path not in tree:
+                if subdir_path not in tree["files"]:
                     logging.debug(f"Detected foreign file: {subdir_path}")
                     os.remove(file_path)
             counter += 1
             self.progress_bar.bar.setValue((counter%20)/20)
 
-        self.progress_bar.label.setText("Gathering file data...")
-        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
-        self.progress_bar.bar.setValue(0)
         self.progress_bar.hide()
+        return True
 
     def about(self):
         self.about_window.show()

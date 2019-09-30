@@ -87,8 +87,16 @@ class Patcher(QMainWindow):
         self.help_window.setWindowTitle("About")
         self.help_window.buttonClicked.connect(self.help_window.close)
 
+        label = QLabel("Version Number", self)
+        label.move(50, 205)
+        label.adjustSize()
+
+        self.version = QLineEdit(self)
+        self.version.resize(80, 30)
+        self.version.move(50, 230)
+
         self.debug = QCheckBox("Debug?", self)
-        self.debug.move(80, 230)
+        self.debug.move(550, 230)
 
         bar = self.menuBar()
         bar.setStyleSheet("QMenuBar {background-color: white;}")
@@ -106,7 +114,7 @@ class Patcher(QMainWindow):
 
     def flatten_handler(self):
         try:
-            self.flatten_btn.setEnabled(False)
+            self.setEnabled(False)
             self.log.debug = self.debug.isChecked()
             reply = QMessageBox.warning(self, "Warning", "This will create a a flattened copy of this directory. Are you sure you wish to continue?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
             if reply == QMessageBox.No:
@@ -120,8 +128,9 @@ class Patcher(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
         else:
-            self.flatten_btn.setEnabled(True)
             QMessageBox.information(self, "Done", "Finished flattening")
+        finally:
+            self.setEnabled(True)
 
     def pick_directory(self):
         text = str(QFileDialog.getExistingDirectory(self, f"Select flatten directory"))
@@ -132,6 +141,12 @@ class Patcher(QMainWindow):
     def pick_tree(self):
         text = str(QFileDialog.getOpenFileName(self, f"Select tree file")[0])
         self.tree.setText(text)
+
+        if self.version.text() == "":
+            with open(text, "r") as f:
+                l = json.load(f)
+
+            self.version.setText(l["version"])
 
     def hash_file(self, path):
         hasher = hashlib.md5()
@@ -150,13 +165,13 @@ class Patcher(QMainWindow):
             self.log.write("tree.json not specified, generating blank one\n")
             old_tree = {}
 
-        tree = {}
+        tree = {"files": {}, "version": self.version.text() or old_tree["version"]}
         new_dir = os.path.join(self.directory.text(), '..', 'release') 
         try:
             self.log.write("Creating release directory one level up\n")
             os.mkdir(new_dir)
         except FileExistsError as e:
-            QMessageBox.critical(self, " Dir Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.critical(self, "Dir Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
             return
 
         for path, _, files in os.walk(self.directory.text()):
@@ -169,11 +184,11 @@ class Patcher(QMainWindow):
                 subdir_path = file_path.replace(f"{self.directory.text()}\\", '')
                 md5 = self.hash_file(file_path)
                 try:
-                    old_md5 = old_tree[subdir_path]["hash"]
+                    old_md5 = old_tree["files"][subdir_path]["hash"]
                 except KeyError:
                     old_md5 = ""
 
-                tree[subdir_path] = {"name": name, "path": subdir_path, "hash": md5}
+                tree["files"][subdir_path] = {"name": name, "path": subdir_path, "hash": md5}
                 self.log.write(f"{file_path}: Old '{old_md5}' vs '{md5}' New\n")
                 if md5 != old_md5:
                     try:
