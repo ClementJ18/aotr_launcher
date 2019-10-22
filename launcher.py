@@ -74,6 +74,7 @@ class Launcher(QMainWindow):
 
         self.url_support = "https://www.moddb.com/mods/the-horse-lords-a-total-modification-for-bfme/tutorials/installing-age-of-the-ring-and-common-issues"
         self.url_discord = "https://discord.gg/SHm3QrZ"
+        self.url_wiki    = "https://aotr.fandom.com"
 
         self.about_text_intro = "About Age of the Ring"
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license."
@@ -94,9 +95,6 @@ class Launcher(QMainWindow):
 
         service = build('drive', 'v3', credentials=creds)
         self.files_service = service.files()
-
-        service = build('driveactivity', 'v2', credentials=creds)
-        self.activity_service = service.activity()
 
         self.init_ui()
 
@@ -152,6 +150,8 @@ class Launcher(QMainWindow):
         uninstall_act.triggered.connect(self.uninstall)
         repair_act = bar.addAction('Repair')
         repair_act.triggered.connect(self.repair)
+        wiki_act = bar.addAction('Wiki')
+        wiki_act.triggered.connect(lambda: webbrowser.open_new(self.url_wiki))
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
@@ -174,6 +174,13 @@ class Launcher(QMainWindow):
 
         request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
         r = requests.get(request["files"][0]["webContentLink"])
+
+        with open(os.path.join(self.path_aotr, "tree.json")) as f:
+            version = json.load(f)["version"]
+            version_online = json.load(r.content)["version"]
+
+            if version == version_online:
+                QMessageBox.info(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
     def launch(self):
         #Launch game with the -mod command
@@ -229,7 +236,8 @@ class Launcher(QMainWindow):
         self.progress_bar.bar.setValue(0)
         self.progress_bar.show()
         # check if update is possible by making sure that files aren't currently being uploaded.
-        folder = self.files_service.get(fileId="1GMe3A8LUaQziBua8dC0tOnfiV3yUmlIb", fields="*").execute()
+        folder = self.files_service.get(fileId=self.folder_id, fields="*").execute()
+        
         # results = self.activity_service.query(body={
         #     'pageSize': 10
         # }).execute()
