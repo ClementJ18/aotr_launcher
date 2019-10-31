@@ -75,6 +75,7 @@ class Launcher(QMainWindow):
         self.url_support = "https://www.moddb.com/mods/the-horse-lords-a-total-modification-for-bfme/tutorials/installing-age-of-the-ring-and-common-issues"
         self.url_discord = "https://discord.gg/SHm3QrZ"
         self.url_wiki    = "https://aotr.fandom.com"
+        self.url_forums  = "https://forums.revora.net/forum/2601-age-of-the-ring/"
 
         self.about_text_intro = "About Age of the Ring"
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license."
@@ -152,6 +153,8 @@ class Launcher(QMainWindow):
         repair_act.triggered.connect(self.repair)
         wiki_act = bar.addAction('Wiki')
         wiki_act.triggered.connect(lambda: webbrowser.open_new(self.url_wiki))
+        forums_act = bar.addAction('Forums')
+        forums_act.triggered.connect(lambda: webbrowser.open_new(self.url_forums))
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
@@ -175,9 +178,9 @@ class Launcher(QMainWindow):
         request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
         r = requests.get(request["files"][0]["webContentLink"])
 
-        with open(os.path.join(self.path_aotr, "tree.json")) as f:
+        with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
             version = json.load(f)["version"]
-            version_online = json.load(r.content)["version"]
+            version_online = json.load(r.content.decode('utf-8'))["version"]
 
             if version == version_online:
                 QMessageBox.info(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
@@ -244,7 +247,7 @@ class Launcher(QMainWindow):
         # activities = results.get('activities', [])
 
         modified_by = datetime.datetime.strptime(folder["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fz")
-        if modified_by > (datetime.datetime.now() - datetime.timedelta(hours=2)):
+        if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
             raise ValueError("Cannot currently update, please try again later.")
 
         request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")

@@ -11,6 +11,7 @@ import winreg
 import os
 import shutil
 import win32com.client
+import webbrowser
 
 class Installer(QWidget):
     def __init__(self):
@@ -19,7 +20,7 @@ class Installer(QWidget):
         self.file_path = "aotr.zip"
         self.rotwk_file_name = "cahfactions.ini"
         self.launcher_name = "launcher.exe"
-        self.shortcut_icon = "launcher_assets/aotr.ico"
+        self.shortcut_icon = "launcher_files/aotr.ico"
 
         self.init_ui()
 
@@ -28,6 +29,7 @@ class Installer(QWidget):
         self.directory = QLineEdit(self)
         self.directory.move(25, 55)
         self.directory.resize(600, 30)
+        self.directory.setText("C:\\Program Files\\Age of the Ring")
 
         self.pick_directory_btn = QPushButton("...", self)
         self.pick_directory_btn.resize(25, 25)
@@ -38,7 +40,6 @@ class Installer(QWidget):
         self.install_btn.resize(250, 100)
         self.install_btn.move(225, 100)
         self.install_btn.clicked.connect(self.installer)
-        self.install_btn.setEnabled(False)
         self.install_btn.setToolTip("Select an installation directory to unlock the button")
 
         self.progress_bar = QProgressBar(self)
@@ -46,10 +47,8 @@ class Installer(QWidget):
         self.progress_bar.resize(600, 25)
         self.progress_bar.hide()
 
-
         self.setGeometry(0, 0, 700, 250)
         self.setWindowTitle('Age of the Ring Installer')
-        self.setWindowIcon(QIcon("aotr.ico"))
 
         self.show()
 
@@ -63,12 +62,7 @@ class Installer(QWidget):
             self.path_rotwk = winreg.EnumValue(key, 5)[1]
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", "Could not detect Rise of the Witch King. Please make sure you have it installed", QMessageBox.Ok, QMessageBox.Ok)
-            self.close()
-
-        #test_data
-        # self.path_bfme2 = "C:\\Users\\Admin\\Documents\\rotwk"
-        # self.path_rotwk = "C:\\Users\\Admin\\Documents\\rotwk"
-            
+            self.close()            
 
     def pick_directory(self):
         text = str(QFileDialog.getExistingDirectory(self, f"Select installation directory"))
@@ -77,8 +71,7 @@ class Installer(QWidget):
                 QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.", QMessageBox.Ok, QMessageBox.Ok)
                 return
 
-            self.directory.setText(f"{text}/aotr")
-            self.install_btn.setEnabled(True)       
+            self.directory.setText(f"{text}/Age of the Ring")
 
     def patch_check(self):
         #check that we are on BFME2 1.06
@@ -112,6 +105,7 @@ class Installer(QWidget):
             self.install_btn.show()
         else:
             QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod.", QMessageBox.Ok, QMessageBox.Ok) 
+            webbrowser.open(os.path.join(self.path_aotr, "AgeOfTheRing_README.rtf"))
             self.close()         
 
     def installation(self):
@@ -120,6 +114,7 @@ class Installer(QWidget):
         extracted_size = 0
         try:
             for file in zf.infolist():
+                QCoreApplication.processEvents()
                 extracted_size += file.file_size
                 self.progress_bar.setValue(extracted_size * 100/uncompress_size)
                 zf.extract(file, self.directory.text())
