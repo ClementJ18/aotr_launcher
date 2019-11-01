@@ -29,7 +29,7 @@ class Installer(QWidget):
         self.directory = QLineEdit(self)
         self.directory.move(25, 55)
         self.directory.resize(600, 30)
-        self.directory.setText("C:\\Program Files\\Age of the Ring")
+        self.directory.setText("C:/Program Files/Age of the Ring")
 
         self.pick_directory_btn = QPushButton("...", self)
         self.pick_directory_btn.resize(25, 25)
@@ -71,7 +71,7 @@ class Installer(QWidget):
                 QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.", QMessageBox.Ok, QMessageBox.Ok)
                 return
 
-            self.directory.setText(f"{text}\\Age of the Ring")
+            self.directory.setText(f"{text}/Age of the Ring")
 
     def patch_check(self):
         #check that we are on BFME2 1.06

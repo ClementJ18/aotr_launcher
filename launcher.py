@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
     QSplitter, QStyleFactory, QApplication, QMessageBox, QLabel, 
     QComboBox, QLineEdit, QPushButton, QCheckBox, QSlider, QLCDNumber,
     QPlainTextEdit, QMenuBar, QMainWindow, QFileDialog, QGraphicsDropShadowEffect,
-    QAbstractButton, QProgressBar)
+    QAbstractButton, QProgressBar, QInputDialog)
 from PyQt5.QtCore import Qt, QSize, QCoreApplication
 from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QFont, QFontDatabase, QPixmap, QPainter
 
@@ -22,6 +22,8 @@ import json
 import logging
 import datetime
 import traceback
+from pathlib import Path
+
 
 logging.basicConfig(level=logging.DEBUG, filename="launcher_files/launcher.log", filemode="w")
 
@@ -82,6 +84,7 @@ class Launcher(QMainWindow):
 
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
         self.uninstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unins000.exe")
+        self.path_flags = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/flags.txt")
         self.file_rotwk = "cahfactions.ini"
         self.folder_id = '1LgPndLiRyS93Sl9HwNCTOnKh7_Kmop4D'
 
@@ -147,14 +150,18 @@ class Launcher(QMainWindow):
         bar.setStyleSheet("QMenuBar {background-color: white;}")
         about_act = bar.addAction('About')
         about_act.triggered.connect(self.about_window.show)
-        uninstall_act = bar.addAction('Uninstall')
-        uninstall_act.triggered.connect(self.uninstall)
         repair_act = bar.addAction('Repair')
         repair_act.triggered.connect(self.repair)
         wiki_act = bar.addAction('Wiki')
         wiki_act.triggered.connect(lambda: webbrowser.open_new(self.url_wiki))
         forums_act = bar.addAction('Forums')
         forums_act.triggered.connect(lambda: webbrowser.open_new(self.url_forums))
+        
+        options_menu = bar.addMenu("Options")
+        flags_act = options_menu.addAction("Launch Flags")
+        flags_act.triggered.connect(self.flags_dialog)
+        uninstall_act = options_menu.addAction('Uninstall')
+        uninstall_act.triggered.connect(self.uninstall)
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
@@ -186,10 +193,25 @@ class Launcher(QMainWindow):
                 if version == version_online:
                     QMessageBox.info(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
+        Path(self.path_flags).touch(exist_ok=True)
+
+    def flags_dialog(self):
+        with open(self.path_flags, "r") as f:
+            current_flags = f.read()
+
+        new_flags, ok = QInputDialog.getText(self, "Flags","Additional launch flags: ", 
+            QLineEdit.Normal, current_flags, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+        if ok:
+            with open(self.path_flags, "w") as f:
+                f.write(new_flags)
+
     def launch(self):
         #Launch game with the -mod command
+        with open(self.path_flags, "r") as f:
+            flags = f.read().split(" ")
+
         try:
-            subprocess.Popen([f"{self.path_rotwk}\\lotrbfme2ep1.exe", "-mod", f"{self.path_aotr}"])
+            subprocess.Popen([f"{self.path_rotwk}\\lotrbfme2ep1.exe", "-mod", f"{self.path_aotr}", *flags])
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
