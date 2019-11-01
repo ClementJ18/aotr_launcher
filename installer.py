@@ -71,7 +71,7 @@ class Installer(QWidget):
                 QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.", QMessageBox.Ok, QMessageBox.Ok)
                 return
 
-            self.directory.setText(f"{text}/Age of the Ring")
+            self.directory.setText(f"{text}\\Age of the Ring")
 
     def patch_check(self):
         #check that we are on BFME2 1.06

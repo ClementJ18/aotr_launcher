@@ -178,12 +178,13 @@ class Launcher(QMainWindow):
         request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
         r = requests.get(request["files"][0]["webContentLink"])
 
-        with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
-            version = json.load(f)["version"]
-            version_online = json.load(r.content.decode('utf-8'))["version"]
+        if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
+            with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
+                version = json.load(f)["version"]
+                version_online = json.load(r.content.decode('utf-8'))["version"]
 
-            if version == version_online:
-                QMessageBox.info(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
+                if version == version_online:
+                    QMessageBox.info(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
     def launch(self):
         #Launch game with the -mod command
