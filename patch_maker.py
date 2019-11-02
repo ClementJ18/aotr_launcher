@@ -166,7 +166,7 @@ class Patcher(QMainWindow):
             old_tree = {}
 
         tree = {"files": {}, "version": self.version.text() or old_tree["version"]}
-        new_dir = os.path.join(self.directory.text(), '..', 'release') 
+        new_dir = os.path.join(self.directory.text(), '..', 'AgeoftheRingUpdate') 
         try:
             self.log.write("Creating release directory one level up\n")
             os.mkdir(new_dir)

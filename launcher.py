@@ -188,7 +188,7 @@ class Launcher(QMainWindow):
         if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
             with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
                 version = json.load(f)["version"]
-                version_online = json.load(r.content.decode('utf-8'))["version"]
+                version_online = json.loads(r.content.decode('utf-8'))["version"]
 
                 if version == version_online:
                     QMessageBox.info(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
@@ -239,7 +239,7 @@ class Launcher(QMainWindow):
             QMessageBox.information(self, "Repair Successful", "Age of the Ring has been reset to its original state", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
 
     def uninstall_dialog(self):
-        reply = QMessageBox.question(self, 'Uninstall Age of the Ring', "Are you sure you want to uninstall Age of the Rings?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(self, 'Uninstall Age of the Ring', "Are you sure you want to uninstall Age of the Ring?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.uninstall()
 

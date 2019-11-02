@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
     QSplitter, QStyleFactory, QApplication, QMessageBox, QLabel, 
     QComboBox, QLineEdit, QPushButton, QCheckBox, QSlider, QLCDNumber,
     QPlainTextEdit, QMenuBar, QMainWindow, QFileDialog, QProgressBar)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtGui import QIcon
 
 import zipfile
@@ -47,7 +47,7 @@ class Installer(QWidget):
         self.progress_bar.resize(600, 25)
         self.progress_bar.hide()
 
-        self.setGeometry(0, 0, 700, 250)
+        self.setFixedSize(700, 250)
         self.setWindowTitle('Age of the Ring Installer')
 
         self.show()
@@ -109,6 +109,7 @@ class Installer(QWidget):
             self.close()         
 
     def installation(self):
+        os.makedirs(self.directory.text())
         zf = zipfile.ZipFile(self.file_path)
         uncompress_size = sum((file.file_size for file in zf.infolist()))
         extracted_size = 0
