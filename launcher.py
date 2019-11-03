@@ -144,7 +144,7 @@ class Launcher(QMainWindow):
         self.about_window.buttonClicked.connect(self.about_window.close)
 
         self.progress_bar = ProgressBar(self)
-        # self.progress_bar.show()
+        self.progress_bar.hide()
 
         bar = self.menuBar()
         bar.setStyleSheet("QMenuBar {background-color: white;}")
@@ -182,10 +182,10 @@ class Launcher(QMainWindow):
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
 
-        request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
-        r = requests.get(request["files"][0]["webContentLink"])
-
         if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
+            request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
+            r = requests.get(request["files"][0]["webContentLink"])
+            
             with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
                 version = json.load(f)["version"]
                 version_online = json.loads(r.content.decode('utf-8'))["version"]
@@ -235,8 +235,9 @@ class Launcher(QMainWindow):
             self.file_fixer()
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+            self.progress_bar.hide()
         else:
-            QMessageBox.information(self, "Repair Successful", "Age of the Ring has been reset to its original state", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            QMessageBox.information(self, "Repair Successful", "Age of the Ring has been reset to its original state", QMessageBox.Ok, QMessageBox.Ok)
 
     def uninstall_dialog(self):
         reply = QMessageBox.question(self, 'Uninstall Age of the Ring', "Are you sure you want to uninstall Age of the Ring?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
