@@ -26,6 +26,21 @@ from pathlib import Path
 
 
 logging.basicConfig(level=logging.DEBUG, filename="launcher_files/launcher.log", filemode="w")
+uninstall_code = """
+import time
+import shutil
+import sys
+from PyQt5.QtWidgets import QMessageBox, QApplication, QWidget
+
+time.sleep(5)
+app = QApplication(sys.argv)
+w = QWidget()
+try:
+    shutil.rmtree("{path}")
+    QMessageBox.information(w, "Uninstall", "Uninstalled", QMessageBox.Ok, QMessageBox.Ok)
+except Exception as e:
+    QMessageBox.critical(w, "Error", f"Error while uninstalling: {{e}}", QMessageBox.Ok, QMessageBox.Ok)
+"""
 
 class Button(QPushButton):
     def __init__(self, name, pixmap, parent=None):
@@ -191,7 +206,9 @@ class Launcher(QMainWindow):
                 version_online = json.loads(r.content.decode('utf-8'))["version"]
 
                 if version == version_online:
-                    QMessageBox.info(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
+                    QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
+        else:
+            QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
         Path(self.path_flags).touch(exist_ok=True)
 
@@ -217,7 +234,6 @@ class Launcher(QMainWindow):
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def update(self):
-        # self.file_fixer()
         try:
             updated = self.file_fixer()
         except Exception as e:
@@ -247,7 +263,7 @@ class Launcher(QMainWindow):
 
     def uninstall(self):
         os.remove(f"{self.path_rotwk}\\{self.file_rotwk}")
-        subprocess.Popen([f"{self.uninstaller}"])
+        subprocess.Popen(['python', '-c', uninstall_code.format(path=os.path.dirname(os.path.abspath(__file__))).replace("\\", "/")], shell=True)
         self.close()
 
     def hash_file(self, path):
@@ -292,6 +308,9 @@ class Launcher(QMainWindow):
             r = requests.get(tree["webContentLink"])
         except TypeError:
             raise TypeError("Did not find tree.json, please report this bug to the discord.")
+
+        with open(os.path.join(self.path_aotr, "tree.json"), "wb") as f:
+            f.write(r.content)
 
         self.progress_bar.label.setText("Verifying file integrity...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
