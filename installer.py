@@ -12,6 +12,7 @@ import os
 import shutil
 import win32com.client
 import webbrowser
+import traceback
 
 class Installer(QWidget):
     def __init__(self):
@@ -73,31 +74,19 @@ class Installer(QWidget):
 
             self.directory.setText(f"{text}/Age of the Ring")
 
-    def patch_check(self):
-        #check that we are on BFME2 1.06
-        # if os.path.isfile(f'{self.path_bfme2}\\some_file.big'):
-        #     QMessageBox.warning(self, "BFME2 Version", "The installer has detected that you have 1.09 activated. Note that BFME2 must be set to 1.06 in order to play this mod.", QMessageBox.Ok, QMessageBox.Ok)
-
-        #check that we are on ROTWK 2.02 version whatever is currently the supported version(v8 rn)
-        if not os.path.isfile(f'{self.path_rotwk}\\##########202_v8.0.0.big'):
-            reply = QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated, it is recommended to have 2.02 enabled when installing the mod. Note that ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok)
-
-            if reply == QMessageBox.cancel:
-                return False
-
-        return True
-
     def installer(self):
         #2. Extract a single file in the ROTWK folder
         #3. Extract the rest of the files into the AOTR folder
         #4. Generate shortcut???
-        if not self.patch_check():
-            return
-            
-        self.install_btn.hide()
-        self.progress_bar.show()
+        if not os.path.isfile(f'{self.path_rotwk}\\##########202_v8.0.0.big'):
+            reply = QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated, it is recommended to have 2.02 enabled when installing the mod. Note that ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok)
+
+            if reply == QMessageBox.Cancel:
+                return
 
         try:
+            self.install_btn.hide()
+            self.progress_bar.show()
             self.installation()
         except Exception as e:
             QMessageBox.critical(self, "Status", f"Failed to to install: {e}", QMessageBox.Ok, QMessageBox.Ok)
@@ -105,8 +94,8 @@ class Installer(QWidget):
             self.install_btn.show()
         else:
             QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod.", QMessageBox.Ok, QMessageBox.Ok) 
-            webbrowser.open(os.path.join(self.path_aotr, "AgeOfTheRing_README.rtf"))
-            self.close()         
+            webbrowser.open(os.path.join(self.directory.text(), "aotr/AgeOfTheRing_README.rtf"))
+            self.close()
 
     def installation(self):
         os.makedirs(self.directory.text())
@@ -121,7 +110,7 @@ class Installer(QWidget):
                 zf.extract(file, self.directory.text())
 
             shutil.copyfile(self.rotwk_file_name, f"{self.path_rotwk}\\{self.rotwk_file_name}")
-        except Exception as e:
+        except Exception:
             shutil.rmtree(self.directory.text())
             raise
 
@@ -139,19 +128,25 @@ class Installer(QWidget):
             shortcut.save()
 
             #run as admin
-            with open(path, "rb") as f:
-                ba = bytearray(f.read())
+            with open(path, "rb") as file:
+                ba = bytearray(file.read())
 
             ba[0x15] = ba[0x15] | 0x20
 
-            with open(path, "wb") as f:
-                f.write(ba)
+            with open(path, "wb") as file:
+                file.write(ba)
 
-        except Exception as e:
+        except Exception:
             raise        
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    app.setStyle('Fusion')
-    gui = Installer()
-    sys.exit(app.exec_())
+    try:
+        app = QApplication(sys.argv)
+        app.setStyle('Fusion')
+        gui = Installer()
+        app.exec_()
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        sam =  traceback.format_exception(exc_type, exc_value, exc_traceback)
+        with open("error.log", "w") as f:
+            f.write(sam)

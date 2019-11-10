@@ -22,25 +22,12 @@ import json
 import logging
 import datetime
 import traceback
+import shutil
 from pathlib import Path
+import time
 
 
 logging.basicConfig(level=logging.DEBUG, filename="launcher_files/launcher.log", filemode="w")
-uninstall_code = """
-import time
-import shutil
-import sys
-from PyQt5.QtWidgets import QMessageBox, QApplication, QWidget
-
-time.sleep(5)
-app = QApplication(sys.argv)
-w = QWidget()
-try:
-    shutil.rmtree("{path}")
-    QMessageBox.information(w, "Uninstall", "Uninstalled", QMessageBox.Ok, QMessageBox.Ok)
-except Exception as e:
-    QMessageBox.critical(w, "Error", f"Error while uninstalling: {{e}}", QMessageBox.Ok, QMessageBox.Ok)
-"""
 
 class Button(QPushButton):
     def __init__(self, name, pixmap, parent=None):
@@ -91,7 +78,7 @@ class Launcher(QMainWindow):
 
         self.url_support = "https://www.moddb.com/mods/the-horse-lords-a-total-modification-for-bfme/tutorials/installing-age-of-the-ring-and-common-issues"
         self.url_discord = "https://discord.gg/SHm3QrZ"
-        self.url_wiki    = "https://aotr.fandom.com"
+        self.url_wiki    = "https://aotr.wikia.com/wiki/AOTR_Wiki"
         self.url_forums  = "https://forums.revora.net/forum/2601-age-of-the-ring/"
 
         self.about_text_intro = "About Age of the Ring"
@@ -176,7 +163,7 @@ class Launcher(QMainWindow):
         flags_act = options_menu.addAction("Launch Flags")
         flags_act.triggered.connect(self.flags_dialog)
         uninstall_act = options_menu.addAction('Uninstall')
-        uninstall_act.triggered.connect(self.uninstall)
+        uninstall_act.triggered.connect(self.uninstall_dialog)
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
@@ -205,7 +192,7 @@ class Launcher(QMainWindow):
                 version = json.load(f)["version"]
                 version_online = json.loads(r.content.decode('utf-8'))["version"]
 
-                if version == version_online:
+                if version != version_online:
                     QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
         else:
             QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
@@ -229,6 +216,7 @@ class Launcher(QMainWindow):
 
         try:
             subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")])
+            time.sleep(1)
             subprocess.Popen([f"{self.path_rotwk}\\lotrbfme2ep1.exe", "-mod", f"{self.path_aotr}", *flags])
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
@@ -259,11 +247,20 @@ class Launcher(QMainWindow):
     def uninstall_dialog(self):
         reply = QMessageBox.question(self, 'Uninstall Age of the Ring', "Are you sure you want to uninstall Age of the Ring?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.uninstall()
+            try:
+                self.uninstall()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def uninstall(self):
-        os.remove(f"{self.path_rotwk}\\{self.file_rotwk}")
-        subprocess.Popen(['python', '-c', uninstall_code.format(path=os.path.dirname(os.path.abspath(__file__))).replace("\\", "/")], shell=True)
+        shutil.rmtree(self.path_aotr)
+        try:
+            os.remove(os.path.join(self.path_rotwk, self.file_rotwk))
+        except FileNotFoundError:
+            pass
+        
+        folder = '{}'.format(os.path.dirname(os.path.abspath(__file__)))
+        subprocess.Popen(['timeout', '5', '&', 'rmdir', '/Q', '/S', folder, '&', 'rmdir', folder], shell=True)
         self.close()
 
     def hash_file(self, path):
@@ -363,7 +360,7 @@ class Launcher(QMainWindow):
         for path, _, files in os.walk(self.path_aotr):
             for name in files:
                 QCoreApplication.processEvents()
-                if name in ["desktop.ini"]:
+                if name in ["desktop.ini", "tree.json"]:
                     continue
 
                 file_path = os.path.join(path, name)
