@@ -215,9 +215,9 @@ class Launcher(QMainWindow):
             flags = f.read().split(" ")
 
         try:
-            subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")])
-            time.sleep(1)
-            subprocess.Popen([f"{self.path_rotwk}\\lotrbfme2ep1.exe", "-mod", f"{self.path_aotr}", *flags])
+            subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")], cwd=self.path_aotr)
+            time.sleep(5)
+            subprocess.Popen([os.path.join(self.path_rotwk, "lotrbfme2ep1.exe"), "-mod", f"{self.path_aotr}", *flags], cwd=self.path_aotr)
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
