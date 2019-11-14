@@ -10,7 +10,6 @@ import pickle
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 
-
 import requests
 import sys
 import webbrowser
@@ -29,6 +28,8 @@ import time
 
 logging.basicConfig(level=logging.DEBUG, filename= os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), filemode="w")
 
+# this allows us to create our buttons with custom images and generate the highligh on hover, this does break writing 
+# on top of the buttons so we cheat by just putting the text on the image
 class Button(QPushButton):
     def __init__(self, name, pixmap, parent=None):
         super(QPushButton, self).__init__(name, parent)
@@ -36,6 +37,7 @@ class Button(QPushButton):
         self.name = name
 
     def enterEvent(self, QEvent):
+        #generate white highlight
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(50)
         shadow.setColor(QColor(255, 255, 255, 255))
@@ -43,6 +45,7 @@ class Button(QPushButton):
         self.setGraphicsEffect(shadow)
 
     def leaveEvent(self, QEvent):
+        #reset to normal shadow
         self.parent()._generate_shadow(self)
 
     def paintEvent(self, event):
@@ -52,10 +55,11 @@ class Button(QPushButton):
     def sizeHint(self):
         return self.pixmap.size()
 
+# this is the progress bar for the update process, this is initialzied during the creation of the GUI
+# and then we hide it and only show it when the user clicks on the button.
 class ProgressBar(QMainWindow):
     def __init__(self, parent=None):
         super(ProgressBar, self).__init__(parent)
-
         self.init_ui()
 
     def init_ui(self):
@@ -72,26 +76,36 @@ class ProgressBar(QMainWindow):
         self.setWindowTitle('Update Progress')
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
 
+#main window
 class Launcher(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        #links for the menu buttons
         self.url_support = "https://www.moddb.com/mods/the-horse-lords-a-total-modification-for-bfme/tutorials/installing-age-of-the-ring-and-common-issues"
         self.url_discord = "https://discord.gg/SHm3QrZ"
         self.url_wiki    = "https://aotr.wikia.com/wiki/AOTR_Wiki"
         self.url_forums  = "https://forums.revora.net/forum/2601-age-of-the-ring/"
 
+        #text for the about menu button
         self.about_text_intro = "About Age of the Ring"
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. \n\n The launcher was created by Necro#6714, full source code is available at: https://github.com/ClementJ18/aotr_launcher"
 
+        #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
-        self.uninstaller = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.dirname = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) #directory where the mod folder is
         self.path_flags = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/flags.txt")
+
+        #name  of the rotwk file we need
         self.file_rotwk = "cahfactions.ini"
+
+        #google drive id of the folder used in the update process, this is where all the updates downloadedfrom
         self.folder_id = '1LgPndLiRyS93Sl9HwNCTOnKh7_Kmop4D'
 
+        #bit of code required for google drive, don't touch
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
+        #initialize the google drive credentials and store them into memory
         creds = None
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/token.pickle"), 'rb') as token:
             creds = pickle.load(token)
@@ -105,6 +119,7 @@ class Launcher(QMainWindow):
         self.init_ui()
 
     def _generate_shadow(self, button):
+        #used to generate the standard black shadow for buttons
         shadow = QGraphicsDropShadowEffect(button)
         shadow.setBlurRadius(15)
         shadow.setColor(QColor(0, 0, 0, 180))
@@ -112,30 +127,35 @@ class Launcher(QMainWindow):
         button.setGraphicsEffect(shadow)
 
     def init_ui(self):
+        #button that launches the mod
         self.launch_btn = Button("Play", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_play_button.png')), self)
         self.launch_btn.resize(177, 70)
         self.launch_btn.move(162, 111)
         self.launch_btn.clicked.connect(self.launch)
         self._generate_shadow(self.launch_btn)
 
+        #button that updates the mod
         self.update_btn = Button("Update", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher_update_button.png")), self)
         self.update_btn.resize(177, 70)
         self.update_btn.move(162, 207)
         self.update_btn.clicked.connect(self.update)
         self._generate_shadow(self.update_btn)
 
+        #button that opens a webbrowser to invite you to the aotr community server
         self.discord_btn = Button("Discord", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_discord_button.png')), self)
         self.discord_btn.resize(87, 34)
         self.discord_btn.move(207, 303)
         self.discord_btn.clicked.connect(lambda: webbrowser.open_new(self.url_discord))
         self._generate_shadow(self.discord_btn)
 
+        #button that oppens a webbrowser to the moddb page for support help
         self.support_btn = Button("Support", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_support_button.png')), self)
         self.support_btn.resize(87, 34)
         self.support_btn.move(207, 363)
         self.support_btn.clicked.connect(lambda: webbrowser.open_new(self.url_support))
         self._generate_shadow(self.support_btn)
         
+        #about box containing disaclaimer, hidden at the start
         self.about_window = QMessageBox()
         self.about_window.setIcon(QMessageBox.Information)
         self.about_window.setText(self.about_text_intro)
@@ -145,30 +165,33 @@ class Launcher(QMainWindow):
         self.about_window.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
         self.about_window.buttonClicked.connect(self.about_window.close)
 
+        #progress bar for update progress, hidden at the start
         self.progress_bar = ProgressBar(self)
         self.progress_bar.hide()
 
+        #menu containing the rest of the buttons
         bar = self.menuBar()
         bar.setStyleSheet("QMenuBar {background-color: white;}")
-        about_act = bar.addAction('About')
+        about_act = bar.addAction('About') # about box
         about_act.triggered.connect(self.about_window.show)
-        repair_act = bar.addAction('Repair')
+        repair_act = bar.addAction('Repair') #basically an update but named repair for users
         repair_act.triggered.connect(self.repair)
-        wiki_act = bar.addAction('Wiki')
+        wiki_act = bar.addAction('Wiki') #webbrowser link to the wiki
         wiki_act.triggered.connect(lambda: webbrowser.open_new(self.url_wiki))
-        forums_act = bar.addAction('Forums')
+        forums_act = bar.addAction('Forums') #webbrowser link to the forums
         forums_act.triggered.connect(lambda: webbrowser.open_new(self.url_forums))
         
-        options_menu = bar.addMenu("Options")
-        flags_act = options_menu.addAction("Launch Flags")
+        options_menu = bar.addMenu("Options") #submenue for uninstall and launcher flags
+        flags_act = options_menu.addAction("Launch Flags") #launcher flags (-win, -scriptdebug2, ect...)
         flags_act.triggered.connect(self.flags_dialog)
-        uninstall_act = options_menu.addAction('Uninstall')
+        uninstall_act = options_menu.addAction('Uninstall') #uninstall
         uninstall_act.triggered.connect(self.uninstall_dialog)
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
 
+        #background image
         oImage = QImage(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcherBG.jpg"))
         sImage = oImage.scaled(QSize(500, 500)) 
         palette = QPalette()
@@ -177,6 +200,7 @@ class Launcher(QMainWindow):
 
         self.show()
 
+        #look for ROTWK installation
         try:
             reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
             key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
@@ -184,6 +208,8 @@ class Launcher(QMainWindow):
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
 
+        # check if a new version is available online by comparing to the version of the tree.json, if we can't find a tree.json
+        # we assume that a new version is available
         if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
             request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
             r = requests.get(request["files"][0]["webContentLink"])
@@ -197,14 +223,17 @@ class Launcher(QMainWindow):
         else:
             QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
+        #make sure the file where the flags are stored exists.
         Path(self.path_flags).touch(exist_ok=True)
 
     def flags_dialog(self):
+        #allow for users to modify, add or remove flags
         with open(self.path_flags, "r") as f:
             current_flags = f.read()
 
         new_flags, ok = QInputDialog.getText(self, "Flags","Additional launch flags: ", 
-            QLineEdit.Normal, current_flags, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+            QLineEdit.Normal, current_flags, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint) 
+            # this removes the ? that appeared in the dialog.
         if ok:
             with open(self.path_flags, "w") as f:
                 f.write(new_flags)
@@ -214,14 +243,22 @@ class Launcher(QMainWindow):
         with open(self.path_flags, "r") as f:
             flags = f.read().split(" ")
 
+        #make sure the cah fix file exists in the rotwk game folder
+        cah_fix = os.path.join(self.path_rotwk, self.file_rotwk)
+        if not os.path.exists(cah_fix):
+            to_copy = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/cahfactions.ini")
+            shutil.copyfile(to_copy, cah_fix)
+
+        #launch the .exe used to fix the CAH problem, waiting a couple seconds, then launch the mod
         try:
             subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")], cwd=self.path_aotr)
-            time.sleep(5)
+            time.sleep(3)
             subprocess.Popen([os.path.join(self.path_rotwk, "lotrbfme2ep1.exe"), "-mod", f"{self.path_aotr}", *flags], cwd=self.path_aotr)
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def update(self):
+        #wrapper to handle any errors that may occur while updating the mod
         try:
             updated = self.file_fixer()
         except Exception as e:
@@ -236,6 +273,7 @@ class Launcher(QMainWindow):
                 QMessageBox.information(self, "No Update", "No new update was available, no files have been modified.", QMessageBox.Ok, QMessageBox.Ok)
 
     def repair(self):
+        #wrapper to handle any errors that may occur while "repairing" the mod
         try:
             self.file_fixer()
         except Exception as e:
@@ -245,6 +283,7 @@ class Launcher(QMainWindow):
             QMessageBox.information(self, "Repair Successful", "Age of the Ring has been reset to its original state", QMessageBox.Ok, QMessageBox.Ok)
 
     def uninstall_dialog(self):
+        #wrapper to handle any errors that may occur while uninstalling the mod
         reply = QMessageBox.question(self, 'Uninstall Age of the Ring', "Are you sure you want to uninstall Age of the Ring?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
@@ -253,18 +292,22 @@ class Launcher(QMainWindow):
                 QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def uninstall(self):
+        #remove mode folder
         shutil.rmtree(self.path_aotr)
+
+        #try to remove cah fix
         try:
             os.remove(os.path.join(self.path_rotwk, self.file_rotwk))
         except FileNotFoundError:
             pass
         
+        #create process to remove the remains of the folder 5 seconds after we close the launcher
         folder = '{}'.format(os.path.dirname(os.path.abspath(__file__)))
-        print(self.uninstaller)
         subprocess.Popen(['timeout', '5', '&', 'rmdir', '/Q', '/S', folder], shell=True, cwd=self.uninstaller)
         self.close()
 
     def hash_file(self, path):
+        #get the md5 hash of a file for comparison during the update process
         hasher = hashlib.md5()
         with open(path, 'rb') as afile:
             buf = afile.read()
@@ -273,24 +316,22 @@ class Launcher(QMainWindow):
         return hasher.hexdigest()
 
     def file_fixer(self):
+        #update method
+
+        #reset progress bar
         self.progress_bar.label.setText("Gathering file data...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         self.progress_bar.bar.setValue(0)
         self.progress_bar.show()
-        # check if update is possible by making sure that files aren't currently being uploaded.
-        folder = self.files_service.get(fileId=self.folder_id, fields="*").execute()
-        
-        # results = self.activity_service.query(body={
-        #     'pageSize': 10
-        # }).execute()
-        # activities = results.get('activities', [])
 
+        # check if update is possible by making sure that files haven't been uploaded in a while.
+        folder = self.files_service.get(fileId=self.folder_id, fields="*").execute()
         modified_by = datetime.datetime.strptime(folder["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fz")
         if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
             raise ValueError("Cannot currently update, please try again later.")
 
+        #we can only get a thousand files at a time, so we keep going until we have them all.
         request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
-
         files = []
         counter = 0
         while request is not None:
@@ -301,6 +342,7 @@ class Launcher(QMainWindow):
             files.extend(result.get("files", []))
             request = self.files_service.list_next(request, result)
 
+        #then we make sure that we have the tree.json file and save the new one to the folder
         try:
             tree = next((file for file in files if file['name'] == "tree.json"), None)
             r = requests.get(tree["webContentLink"])
@@ -310,6 +352,8 @@ class Launcher(QMainWindow):
         with open(os.path.join(self.path_aotr, "tree.json"), "wb") as f:
             f.write(r.content)
 
+        #we check every file by comparing the hash of the local file vs the hash of the file stored in the tree.json
+        #we also check if the file exists at all
         self.progress_bar.label.setText("Verifying file integrity...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         tree = json.loads(r.content.decode('utf-8'))
@@ -339,10 +383,11 @@ class Launcher(QMainWindow):
                     logging.debug(f"Did not download file {file['path']}")
 
         if not to_download:
+            #if there are now new/changed files we just return
             self.progress_bar.hide()
             return False
 
-        #actually downloadfiles
+        #actually download all the files that have been marked as changed or missing
         self.progress_bar.label.setText("Downloading files...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         for file in to_download:
@@ -353,7 +398,7 @@ class Launcher(QMainWindow):
             with open(file["path"], "wb") as f:
                 f.write(r.content)
 
-        #figure out which things need to get removed
+        #any file not in tree.json is removed.
         self.progress_bar.label.setText("Cleanup...")
         self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
         self.progress_bar.bar.setValue(0)
