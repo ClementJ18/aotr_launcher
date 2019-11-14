@@ -27,7 +27,7 @@ from pathlib import Path
 import time
 
 
-logging.basicConfig(level=logging.DEBUG, filename="launcher_files/launcher.log", filemode="w")
+logging.basicConfig(level=logging.DEBUG, filename= os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), filemode="w")
 
 class Button(QPushButton):
     def __init__(self, name, pixmap, parent=None):
@@ -70,7 +70,7 @@ class ProgressBar(QMainWindow):
 
         self.setFixedSize(500, 200)
         self.setWindowTitle('Update Progress')
-        self.setWindowIcon(QIcon("launcher_files/aotr.ico"))
+        self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
 
 class Launcher(QMainWindow):
     def __init__(self):
@@ -85,7 +85,7 @@ class Launcher(QMainWindow):
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. \n\n The launcher was created by Necro#6714, full source code is available at: https://github.com/ClementJ18/aotr_launcher"
 
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
-        self.uninstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unins000.exe")
+        self.uninstaller = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.path_flags = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/flags.txt")
         self.file_rotwk = "cahfactions.ini"
         self.folder_id = '1LgPndLiRyS93Sl9HwNCTOnKh7_Kmop4D'
@@ -93,7 +93,7 @@ class Launcher(QMainWindow):
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
         creds = None
-        with open('launcher_files/token.pickle', 'rb') as token:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/token.pickle"), 'rb') as token:
             creds = pickle.load(token)
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
@@ -112,25 +112,25 @@ class Launcher(QMainWindow):
         button.setGraphicsEffect(shadow)
 
     def init_ui(self):
-        self.launch_btn = Button("Play", QPixmap('launcher_files/launcher_play_button.png'), self)
+        self.launch_btn = Button("Play", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_play_button.png')), self)
         self.launch_btn.resize(177, 70)
         self.launch_btn.move(162, 111)
         self.launch_btn.clicked.connect(self.launch)
         self._generate_shadow(self.launch_btn)
 
-        self.update_btn = Button("Update", QPixmap('launcher_files/launcher_update_button.png'), self)
+        self.update_btn = Button("Update", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher_update_button.png")), self)
         self.update_btn.resize(177, 70)
         self.update_btn.move(162, 207)
         self.update_btn.clicked.connect(self.update)
         self._generate_shadow(self.update_btn)
 
-        self.discord_btn = Button("Discord", QPixmap('launcher_files/launcher_discord_button.png'), self)
+        self.discord_btn = Button("Discord", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_discord_button.png')), self)
         self.discord_btn.resize(87, 34)
         self.discord_btn.move(207, 303)
         self.discord_btn.clicked.connect(lambda: webbrowser.open_new(self.url_discord))
         self._generate_shadow(self.discord_btn)
 
-        self.support_btn = Button("Support", QPixmap('launcher_files/launcher_support_button.png'), self)
+        self.support_btn = Button("Support", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_support_button.png')), self)
         self.support_btn.resize(87, 34)
         self.support_btn.move(207, 363)
         self.support_btn.clicked.connect(lambda: webbrowser.open_new(self.url_support))
@@ -142,7 +142,7 @@ class Launcher(QMainWindow):
         self.about_window.setInformativeText(self.about_text_full)
         self.about_window.setStandardButtons(QMessageBox.Ok)
         self.about_window.setWindowTitle("About")
-        self.about_window.setWindowIcon(QIcon("launcher_files/aotr.ico"))
+        self.about_window.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
         self.about_window.buttonClicked.connect(self.about_window.close)
 
         self.progress_bar = ProgressBar(self)
@@ -167,12 +167,12 @@ class Launcher(QMainWindow):
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
-        self.setWindowIcon(QIcon("launcher_files/aotr.ico"))
+        self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
 
-        oImage = QImage("launcher_files/launcherBG.jpg")
-        sImage = oImage.scaled(QSize(500, 500))  # resize Image to widgets size
+        oImage = QImage(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcherBG.jpg"))
+        sImage = oImage.scaled(QSize(500, 500)) 
         palette = QPalette()
-        palette.setBrush(10, QBrush(sImage))  # 10 = WindowRole
+        palette.setBrush(10, QBrush(sImage))
         self.setPalette(palette)
 
         self.show()
@@ -260,7 +260,8 @@ class Launcher(QMainWindow):
             pass
         
         folder = '{}'.format(os.path.dirname(os.path.abspath(__file__)))
-        subprocess.Popen(['timeout', '5', '&', 'rmdir', '/Q', '/S', folder, '&', 'rmdir', folder], shell=True)
+        print(self.uninstaller)
+        subprocess.Popen(['timeout', '5', '&', 'rmdir', '/Q', '/S', folder], shell=True, cwd=self.uninstaller)
         self.close()
 
     def hash_file(self, path):
