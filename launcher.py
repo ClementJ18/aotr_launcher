@@ -93,7 +93,7 @@ class Launcher(QMainWindow):
 
         #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
-        self.dirname = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) #directory where the mod folder is
+        self.uninstaller = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) #directory where the mod folder is
         self.path_flags = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/flags.txt")
 
         #name  of the rotwk file we need
