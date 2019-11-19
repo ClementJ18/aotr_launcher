@@ -2,9 +2,9 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
     QSplitter, QStyleFactory, QApplication, QMessageBox, QLabel, 
     QComboBox, QLineEdit, QPushButton, QCheckBox, QSlider, QLCDNumber,
     QPlainTextEdit, QMenuBar, QMainWindow, QFileDialog, QGraphicsDropShadowEffect,
-    QAbstractButton, QProgressBar, QInputDialog)
+    QAbstractButton, QProgressBar, QInputDialog, QDialog)
 from PyQt5.QtCore import Qt, QSize, QCoreApplication
-from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QFont, QFontDatabase, QPixmap, QPainter
+from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QPixmap, QPainter
 
 import pickle
 from googleapiclient.discovery import build
@@ -57,10 +57,19 @@ class Button(QPushButton):
 
 # this is the progress bar for the update process, this is initialzied during the creation of the GUI
 # and then we hide it and only show it when the user clicks on the button.
-class ProgressBar(QMainWindow):
+class ProgressBar(QDialog):
     def __init__(self, parent=None):
         super(ProgressBar, self).__init__(parent)
         self.init_ui()
+
+        self.in_progress = True
+
+    def change_text(self, text):
+        self.label.setText(text)
+        self.label.resize(self.label.sizeHint())
+
+    def change_percent(self, value):
+        self.bar.setValue(value)
 
     def init_ui(self):
         self.label = QLabel("Gathering file data...", self)
@@ -75,6 +84,17 @@ class ProgressBar(QMainWindow):
         self.setFixedSize(500, 200)
         self.setWindowTitle('Update Progress')
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
+        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
+
+    def closeEvent(self, evnt):
+        if not self.in_progress:
+            super(ProgressBar, self).closeEvent(evnt)
+        else:
+            evnt.ignore()
+
+    def keyPressEvent(self, evnt):
+        if not evnt.key() == Qt.Key_Escape:
+            super(ProgressBar, self).keyPressEvent(evnt)
 
 #main window
 class Launcher(QMainWindow):
@@ -89,7 +109,7 @@ class Launcher(QMainWindow):
 
         #text for the about menu button
         self.about_text_intro = "About Age of the Ring"
-        self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. \n\n The launcher was created by Necro#6714, full source code is available at: https://github.com/ClementJ18/aotr_launcher"
+        self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. \n\n The launcher was created by Necro#6714, full source code is available at: https://github.com/ClementJ18/aotr_launcher\n\nMod Version: {mod_version}\nLauncher Version: {launcher_version}"
 
         #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
@@ -104,6 +124,9 @@ class Launcher(QMainWindow):
 
         #bit of code required for google drive, don't touch
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+
+        self.launcher_version = "v1b1"
+        self.mod_version = 'unknown'
 
         #initialize the google drive credentials and store them into memory
         creds = None
@@ -125,6 +148,15 @@ class Launcher(QMainWindow):
         shadow.setColor(QColor(0, 0, 0, 180))
         shadow.setOffset(0, 0)
         button.setGraphicsEffect(shadow)
+
+    def enabled(self, value):
+        self.menuBar().setEnabled(value)
+        self.launch_btn.setEnabled(value)
+        self.update_btn.setEnabled(value)
+        self.discord_btn.setEnabled(value)
+        self.support_btn.setEnabled(value)
+
+        self.progress_bar.in_progress = not value
 
     def init_ui(self):
         #button that launches the mod
@@ -173,7 +205,7 @@ class Launcher(QMainWindow):
         bar = self.menuBar()
         bar.setStyleSheet("QMenuBar {background-color: white;}")
         about_act = bar.addAction('About') # about box
-        about_act.triggered.connect(self.about_window.show)
+        about_act.triggered.connect(self.about)
         repair_act = bar.addAction('Repair') #basically an update but named repair for users
         repair_act.triggered.connect(self.repair)
         wiki_act = bar.addAction('Wiki') #webbrowser link to the wiki
@@ -217,6 +249,7 @@ class Launcher(QMainWindow):
             with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
                 version = json.load(f)["version"]
                 version_online = json.loads(r.content.decode('utf-8'))["version"]
+                self.mod_version = version
 
                 if version != version_online:
                     QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
@@ -259,12 +292,20 @@ class Launcher(QMainWindow):
 
     def update(self):
         #wrapper to handle any errors that may occur while updating the mod
+        reply = QMessageBox.information(self, "Confirmation", "Updating is a lenghty process and cannot be stopped after it is started, are you sure you wish to proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if reply == QMessageBox.No:
+            return
+
         try:
-            updated = self.file_fixer()
+            self.enabled(False)
+            updated = self.file_fixer("Update")
         except Exception as e:
+            self.enabled(True)
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
             self.progress_bar.hide()
         else:
+            self.enabled(True)
+            self.progress_bar.hide()
             if updated:
                 reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
                 if reply == QMessageBox.Yes:
@@ -274,12 +315,20 @@ class Launcher(QMainWindow):
 
     def repair(self):
         #wrapper to handle any errors that may occur while "repairing" the mod
+        reply = QMessageBox.information(self, "Confirmation", "Repairing is a lenghty process and cannot be stopped after it is started, are you sure you wish to proceed?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if reply == QMessageBox.No:
+            return
+
         try:
-            self.file_fixer()
+            self.enabled(False)
+            self.file_fixer("Repair")
         except Exception as e:
+            self.enabled(True)
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
             self.progress_bar.hide()
         else:
+            self.enabled(True)
+            self.progress_bar.hide()
             QMessageBox.information(self, "Repair Successful", "Age of the Ring has been reset to its original state", QMessageBox.Ok, QMessageBox.Ok)
 
     def uninstall_dialog(self):
@@ -315,20 +364,20 @@ class Launcher(QMainWindow):
 
         return hasher.hexdigest()
 
-    def file_fixer(self):
+    def file_fixer(self, string):
         #update method
 
         #reset progress bar
-        self.progress_bar.label.setText("Gathering file data...")
-        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
-        self.progress_bar.bar.setValue(0)
+        self.progress_bar.setWindowTitle(f'{string} Progress')
+        self.progress_bar.change_text("Gathering file data...")
+        self.progress_bar.change_percent(0)
         self.progress_bar.show()
 
         # check if update is possible by making sure that files haven't been uploaded in a while.
         folder = self.files_service.get(fileId=self.folder_id, fields="*").execute()
         modified_by = datetime.datetime.strptime(folder["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fz")
         if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
-            raise ValueError("Cannot currently update, please try again later.")
+            raise ValueError(f"Cannot currently {string.lower()}, please try again later.")
 
         #we can only get a thousand files at a time, so we keep going until we have them all.
         request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
@@ -338,7 +387,7 @@ class Launcher(QMainWindow):
             QCoreApplication.processEvents()
             result = request.execute()
             counter += 1
-            self.progress_bar.bar.setValue((counter/20)*100)
+            self.progress_bar.change_percent((counter/20)*100)
             files.extend(result.get("files", []))
             request = self.files_service.list_next(request, result)
 
@@ -354,15 +403,15 @@ class Launcher(QMainWindow):
 
         #we check every file by comparing the hash of the local file vs the hash of the file stored in the tree.json
         #we also check if the file exists at all
-        self.progress_bar.label.setText("Verifying file integrity...")
-        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
+        self.progress_bar.change_text("Verifying file integrity...")
         tree = json.loads(r.content.decode('utf-8'))
         tree_len = len(tree["files"])
         tree_values = list(tree["files"].values())
+        self.mod_version = tree["version"]
         to_download = []
         for file in tree_values:
             QCoreApplication.processEvents()
-            self.progress_bar.bar.setValue((tree_values.index(file)/tree_len)*100)
+            self.progress_bar.change_percent((tree_values.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
             download = next((f for f in files if f['name'] == file["path"].replace("\\", ".")), None)
             if download is None:
@@ -388,20 +437,18 @@ class Launcher(QMainWindow):
             return False
 
         #actually download all the files that have been marked as changed or missing
-        self.progress_bar.label.setText("Downloading files...")
-        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
+        self.progress_bar.change_text("Downloading files...")
         for file in to_download:
             QCoreApplication.processEvents()
-            self.progress_bar.bar.setValue((to_download.index(file)/len(to_download))*100)
+            self.progress_bar.change_percent((to_download.index(file)/len(to_download))*100)
             r = requests.get(file["link"])
             os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
             with open(file["path"], "wb") as f:
                 f.write(r.content)
 
         #any file not in tree.json is removed.
-        self.progress_bar.label.setText("Cleanup...")
-        self.progress_bar.label.resize(self.progress_bar.label.sizeHint())
-        self.progress_bar.bar.setValue(0)
+        self.progress_bar.change_text("Cleanup...")
+        self.progress_bar.change_percent(0)
         counter = 0
         for path, _, files in os.walk(self.path_aotr):
             for name in files:
@@ -416,12 +463,15 @@ class Launcher(QMainWindow):
                     logging.debug(f"Detected foreign file: {subdir_path}")
                     os.remove(file_path)
             counter += 1
-            self.progress_bar.bar.setValue((counter%20)/20)
+            self.progress_bar.change_percent((counter%20)/20)
 
         self.progress_bar.hide()
         return True
 
     def about(self):
+        self.setDisabled(True)
+        text = self.about_text_full.format(mod_version=self.mod_version, launcher_version=self.launcher_version)
+        self.about_window.setInformativeText(text)
         self.about_window.show()
 
 if __name__ == '__main__':

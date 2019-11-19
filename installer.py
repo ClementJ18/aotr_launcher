@@ -87,11 +87,15 @@ class Installer(QWidget):
         try:
             self.install_btn.hide()
             self.progress_bar.show()
+            self.directory.setEnabled(False)
+            self.pick_directory_btn.setEnabled(False)
             self.installation()
         except Exception as e:
             QMessageBox.critical(self, "Status", f"Failed to to install: {e}", QMessageBox.Ok, QMessageBox.Ok)
             self.progress_bar.hide()    
             self.install_btn.show()
+            self.directory.setEnabled(True)
+            self.pick_directory_btn.setEnabled(True)
         else:
             QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod.", QMessageBox.Ok, QMessageBox.Ok) 
             webbrowser.open(os.path.join(self.directory.text(), "aotr/AgeOfTheRing_README.rtf"))
