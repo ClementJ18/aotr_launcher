@@ -485,7 +485,7 @@ class Launcher(QMainWindow):
         for file in to_download:
             QCoreApplication.processEvents()
             self.progress_bar.change_percent((to_download.index(file)/len(to_download))*100)
-            r = requests.get(file["link"], headers={"User-Agent": random.choice(user_agent_list)})
+            r = requests.get(file["link"])
             os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
             with open(file["path"], "wb") as f:
                 f.write(r.content)
