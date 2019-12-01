@@ -9,6 +9,7 @@ from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QPixmap, QPaint
 import pickle
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
+from google.auth.exceptions import TransportError
 
 import requests
 import sys
@@ -24,9 +25,39 @@ import traceback
 import shutil
 from pathlib import Path
 import time
-
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+import random
 
 logging.basicConfig(level=logging.DEBUG, filename= os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), filemode="w")
+
+user_agent_list = [
+    #Chrome
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 5.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
+    #Firefox
+    'Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1)',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko',
+    'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)',
+    'Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko',
+    'Mozilla/5.0 (Windows NT 6.2; WOW64; Trident/7.0; rv:11.0) like Gecko',
+    'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko',
+    'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.0; Trident/5.0)',
+    'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko',
+    'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)',
+    'Mozilla/5.0 (Windows NT 6.1; Win64; x64; Trident/7.0; rv:11.0) like Gecko',
+    'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; WOW64; Trident/6.0)',
+    'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)',
+    'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
+]
 
 # this allows us to create our buttons with custom images and generate the highligh on hover, this does break writing 
 # on top of the buttons so we cheat by just putting the text on the image
@@ -84,7 +115,7 @@ class ProgressBar(QDialog):
         self.setFixedSize(500, 200)
         self.setWindowTitle('Update Progress')
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
-        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint)
 
     def closeEvent(self, evnt):
         if not self.in_progress:
@@ -125,10 +156,21 @@ class Launcher(QMainWindow):
         #bit of code required for google drive, don't touch
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
-        self.launcher_version = "v1b1"
+        self.launcher_version = "v1b2"
         self.mod_version = 'unknown'
 
+        self.is_gr = False
+
         #initialize the google drive credentials and store them into memory
+        try:
+            self._get_service()
+        except TransportError:
+            self.is_gr = True
+            self.files_service = None
+
+        self.init_ui()
+
+    def _get_service(self):
         creds = None
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/token.pickle"), 'rb') as token:
             creds = pickle.load(token)
@@ -139,7 +181,6 @@ class Launcher(QMainWindow):
         service = build('drive', 'v3', credentials=creds)
         self.files_service = service.files()
 
-        self.init_ui()
 
     def _generate_shadow(self, button):
         #used to generate the standard black shadow for buttons
@@ -242,19 +283,20 @@ class Launcher(QMainWindow):
 
         # check if a new version is available online by comparing to the version of the tree.json, if we can't find a tree.json
         # we assume that a new version is available
-        if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
-            request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
-            r = requests.get(request["files"][0]["webContentLink"])
-            
-            with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
-                version = json.load(f)["version"]
-                version_online = json.loads(r.content.decode('utf-8'))["version"]
-                self.mod_version = version
+        if not self.is_gr:
+            if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
+                request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
+                r = requests.get(request["files"][0]["webContentLink"])
+                
+                with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
+                    version = json.load(f)["version"]
+                    version_online = json.loads(r.content.decode('utf-8'))["version"]
+                    self.mod_version = version
 
-                if version != version_online:
-                    QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
-        else:
-            QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
+                    if version != version_online:
+                        QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
+            else:
+                QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
         #make sure the file where the flags are stored exists.
         Path(self.path_flags).touch(exist_ok=True)
@@ -366,6 +408,8 @@ class Launcher(QMainWindow):
 
     def file_fixer(self, string):
         #update method
+        if self.files_service is None:
+            self._get_service()
 
         #reset progress bar
         self.progress_bar.setWindowTitle(f'{string} Progress')
@@ -441,7 +485,7 @@ class Launcher(QMainWindow):
         for file in to_download:
             QCoreApplication.processEvents()
             self.progress_bar.change_percent((to_download.index(file)/len(to_download))*100)
-            r = requests.get(file["link"])
+            r = requests.get(file["link"], headers={"User-Agent": random.choice(user_agent_list)})
             os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
             with open(file["path"], "wb") as f:
                 f.write(r.content)
