@@ -13,6 +13,12 @@ if __name__ == '__main__':
         app.setStyle('Fusion')
         gui = Launcher()
         gui.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
+
+        #remove update
+        gui.update_btn.hide()
+        menu = gui.menuBar()
+        menu.removeAction(gui.repair_act)
+
         app.exec_()
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
