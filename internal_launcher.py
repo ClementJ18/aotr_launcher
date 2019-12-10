@@ -140,7 +140,7 @@ class Launcher(QMainWindow):
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. \n\n The launcher was created by Necro#6714\n\nMod Version: {mod_version}\nLauncher Version: {launcher_version}"
 
         #handy paths to avoid having to constantly recreate them
-        self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
+        self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AgeoftheRing")
         self.uninstaller = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) #directory where the mod folder is
         self.path_flags = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/flags.txt")
 

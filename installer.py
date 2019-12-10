@@ -20,7 +20,7 @@ class Installer(QWidget):
 
         self.file_path = "aotr.zip"
         self.rotwk_file_name = "cahfactions.ini"
-        self.launcher_name = "launcher.exe"
+        self.launcher_name = "lotrbfme2ep1.exe"
         self.shortcut_icon = "launcher_files/aotr.ico"
 
         self.init_ui()
