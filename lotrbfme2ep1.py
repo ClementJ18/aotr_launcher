@@ -153,7 +153,7 @@ class Launcher(QMainWindow):
         #bit of code required for google drive, don't touch
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
-        self.launcher_version = "v1b2"
+        self.launcher_version = "v1b3"
         self.mod_version = 'unknown'
 
         self.is_gr = False
