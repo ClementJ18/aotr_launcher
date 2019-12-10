@@ -244,8 +244,8 @@ class Launcher(QMainWindow):
         bar.setStyleSheet("QMenuBar {background-color: white;}")
         about_act = bar.addAction('About') # about box
         about_act.triggered.connect(self.about)
-        repair_act = bar.addAction('Repair') #basically an update but named repair for users
-        repair_act.triggered.connect(self.repair)
+        self.repair_act = bar.addAction('Repair') #basically an update but named repair for users
+        self.repair_act.triggered.connect(self.repair)
         wiki_act = bar.addAction('Wiki') #webbrowser link to the wiki
         wiki_act.triggered.connect(lambda: webbrowser.open_new(self.url_wiki))
         forums_act = bar.addAction('Forums') #webbrowser link to the forums
