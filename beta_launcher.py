@@ -2,6 +2,10 @@ from lotrbfme2ep1 import Launcher
 import sys
 from PyQt5.QtWidgets import QApplication
 import os
+import logging
+import traceback
+
+logging.basicConfig(level=logging.DEBUG, filename= os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), filemode="w")
 
 def password_check(launcher):
     password_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/password.txt")
