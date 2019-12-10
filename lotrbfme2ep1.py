@@ -145,7 +145,7 @@ class Launcher(QMainWindow):
         self.path_flags = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/flags.txt")
 
         #name  of the rotwk file we need
-        self.file_rotwk = "cahfactions.ini"
+        # self.file_rotwk = "cahfactions.ini"
 
         #google drive id of the folder used in the update process, this is where all the updates downloadedfrom
         self.folder_id = '1LgPndLiRyS93Sl9HwNCTOnKh7_Kmop4D'
@@ -316,15 +316,15 @@ class Launcher(QMainWindow):
             flags = f.read().split(" ")
 
         #make sure the cah fix file exists in the rotwk game folder
-        cah_fix = os.path.join(self.path_rotwk, self.file_rotwk)
-        if not os.path.exists(cah_fix):
-            to_copy = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/cahfactions.ini")
-            shutil.copyfile(to_copy, cah_fix)
+        # cah_fix = os.path.join(self.path_rotwk, self.file_rotwk)
+        # if not os.path.exists(cah_fix):
+        #     to_copy = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/cahfactions.ini")
+        #     shutil.copyfile(to_copy, cah_fix)
 
         #launch the .exe used to fix the CAH problem, waiting a couple seconds, then launch the mod
         try:
-            subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")], cwd=self.path_aotr)
-            time.sleep(3)
+            # subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")], cwd=self.path_aotr)
+            # time.sleep(3)
             subprocess.Popen([os.path.join(self.path_rotwk, "lotrbfme2ep1.exe"), "-mod", f"{self.path_aotr}", *flags], cwd=self.path_aotr)
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
@@ -384,10 +384,10 @@ class Launcher(QMainWindow):
         shutil.rmtree(self.path_aotr)
 
         #try to remove cah fix
-        try:
-            os.remove(os.path.join(self.path_rotwk, self.file_rotwk))
-        except FileNotFoundError:
-            pass
+        # try:
+        #     os.remove(os.path.join(self.path_rotwk, self.file_rotwk))
+        # except FileNotFoundError:
+        #     pass
         
         #create process to remove the remains of the folder 5 seconds after we close the launcher
         folder = '{}'.format(os.path.dirname(os.path.abspath(__file__)))

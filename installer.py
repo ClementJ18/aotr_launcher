@@ -19,7 +19,7 @@ class Installer(QWidget):
         super().__init__()
 
         self.file_path = "aotr.zip"
-        self.rotwk_file_name = "cahfactions.ini"
+        # self.rotwk_file_name = "cahfactions.ini"
         self.launcher_name = "lotrbfme2ep1.exe"
         self.shortcut_icon = "launcher_files/aotr.ico"
 
@@ -113,7 +113,7 @@ class Installer(QWidget):
                 self.progress_bar.setValue(extracted_size * 100/uncompress_size)
                 zf.extract(file, self.directory.text())
 
-            shutil.copyfile(self.rotwk_file_name, f"{self.path_rotwk}\\{self.rotwk_file_name}")
+            # shutil.copyfile(self.rotwk_file_name, f"{self.path_rotwk}\\{self.rotwk_file_name}")
         except Exception:
             shutil.rmtree(self.directory.text())
             raise
