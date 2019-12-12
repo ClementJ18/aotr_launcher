@@ -1,4 +1,4 @@
-from lotrbfme2ep1 import Launcher
+from launcher import Launcher
 import sys
 from PyQt5.QtWidgets import QApplication
 import os
