@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
 from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtGui import QIcon
 
+import zipfile
 import sys
 import winreg
 import os
@@ -12,13 +13,12 @@ import shutil
 import win32com.client
 import webbrowser
 import traceback
-import rarfile
 
 class Installer(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.file_path = "aotr.rar"
+        self.file_path = "aotr.zip"
         self.rotwk_file_name = "cahfactions.ini"
         self.launcher_name = "lotrbfme2ep1.exe"
         self.shortcut_icon = "launcher_files/aotr.ico"
@@ -103,7 +103,7 @@ class Installer(QWidget):
 
     def installation(self):
         os.makedirs(self.directory.text())
-        zf = rarfile.RarFile(self.file_path)
+        zf = zipfile.ZipFile(self.file_path)
         uncompress_size = sum((file.file_size for file in zf.infolist()))
         extracted_size = 0
         try:
