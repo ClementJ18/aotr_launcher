@@ -20,3 +20,5 @@ launcher_files/flags.txt
 launcher.sublime-project
 launcher.sublime-workspace
 launcher_files/gr.ico
+beta_launcher.py
+internal_launcher.py
