@@ -137,7 +137,7 @@ class Launcher(QMainWindow):
 
         #text for the about menu button
         self.about_text_intro = "About Age of the Ring"
-        self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. \n The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. \n\n The launcher was created by Necro#6714\n\nMod Version: {mod_version}\nLauncher Version: {launcher_version}"
+        self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. <br> The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. <br><br> The launcher was created by Necro#6714. You can report bugs or see the source code <a href='https://github.com/ClementJ18/aotr_launcher'>on GitHub</a><br><br>Mod Version: {mod_version}<br>Launcher Version: {launcher_version}"
 
         #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
@@ -228,6 +228,7 @@ class Launcher(QMainWindow):
         #about box containing disaclaimer, hidden at the start
         self.about_window = QMessageBox()
         self.about_window.setIcon(QMessageBox.Information)
+        self.about_window.setTextFormat(Qt.RichText)
         self.about_window.setText(self.about_text_intro)
         self.about_window.setInformativeText(self.about_text_full)
         self.about_window.setStandardButtons(QMessageBox.Ok)
