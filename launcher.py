@@ -25,6 +25,7 @@ import traceback
 import shutil
 from pathlib import Path
 import time
+import gdown
 
 logging.basicConfig(level=logging.DEBUG, filename= os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), filemode="w")
 
@@ -140,6 +141,10 @@ class Launcher(QMainWindow):
         self.about_text_intro = "About Age of the Ring"
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. <br> The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. <br><br> The launcher was created by Necro#6714. You can report bugs or see the source code <a href='https://github.com/ClementJ18/aotr_launcher'>on GitHub</a><br><br>Mod Version: {mod_version}<br>Launcher Version: {launcher_version}"
 
+        #text for the gamerange assistant
+        self.gameranger_help_intro = "Follow these instructions to get gameranger working with the new Age of the Ring launcher"
+        self.gameranger_help_full = "<ol><li>Go to User > Options and then the Game Tab</li><li>Scroll down to rise of the witch king</li><li>Click browse and go to this path: <b>{path}</b></li><li>Select the file called <b>lotrbfme2ep1.exe</b></li></ol> Once you've completed this you will now be able to play AOTR using Gameranger. To switch back simply repeat the procedure but instead select the <b>lotrbfme2ep1.exe</b> file located in <b>{path_rotwk}</b>"
+
         #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
         self.uninstaller = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) #directory where the mod folder is
@@ -237,6 +242,17 @@ class Launcher(QMainWindow):
         self.about_window.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
         self.about_window.buttonClicked.connect(self.about_window.close)
 
+        self.gameranger_help = QMessageBox()
+        self.gameranger_help.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.gameranger_help.setIcon(QMessageBox.Information)
+        self.gameranger_help.setTextFormat(Qt.RichText)
+        self.gameranger_help.setText(self.gameranger_help_intro)
+        self.gameranger_help.setInformativeText(self.gameranger_help_full)
+        self.gameranger_help.setStandardButtons(QMessageBox.Ok)
+        self.gameranger_help.setWindowTitle("About")
+        self.gameranger_help.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/aotr.ico")))
+        self.gameranger_help.buttonClicked.connect(self.gameranger_help.close)
+
         #progress bar for update progress, hidden at the start
         self.progress_bar = ProgressBar(self)
         self.progress_bar.hide()
@@ -258,6 +274,8 @@ class Launcher(QMainWindow):
         flags_act.triggered.connect(self.flags_dialog)
         uninstall_act = options_menu.addAction('Uninstall') #uninstall
         uninstall_act.triggered.connect(self.uninstall_dialog)
+        gameranger_act = options_menu.addAction("Gameranger")
+        gameranger_act.triggered.connect(self.gameranger)
 
         self.setFixedSize(500, 500)
         self.setWindowTitle('Age of the Ring')
@@ -273,6 +291,7 @@ class Launcher(QMainWindow):
         self.show()
 
         #look for ROTWK installation
+        self.path_rotwk = "GAME NOT FOUND"
         try:
             reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
             key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
@@ -291,11 +310,9 @@ class Launcher(QMainWindow):
                     request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
                     r = requests.get(request["files"][0]["webContentLink"])
                 except IndexError:
-                    QMessageBox.critical(self, "Error", "Did not find tree.json, you cannot currentl update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
+                    QMessageBox.critical(self, "Error", "Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
                     return
 
-
-                
                 with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
                     version = json.load(f)["version"]
                     version_online = json.loads(r.content.decode('utf-8'))["version"]
@@ -446,7 +463,7 @@ class Launcher(QMainWindow):
             tree = next((file for file in files if file['name'] == "tree.json"), None)
             r = requests.get(tree["webContentLink"])
         except TypeError:
-            raise TypeError("Did not find tree.json, you cannot currentl update but can still play. Please report this bug to the discord.")
+            raise TypeError("Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.")
 
         with open(os.path.join(self.path_aotr, "tree.json"), "wb") as f:
             f.write(r.content)
@@ -463,7 +480,7 @@ class Launcher(QMainWindow):
             QCoreApplication.processEvents()
             self.progress_bar.change_percent((tree_values.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
-            download = next((f for f in files if f['name'] == file["path"].replace("\\", ".")), None)
+            download = next((f for f in files if f['name'] == file["path"].replace("\\", ".").lower()), None)
             if download is None:
                 QMessageBox.critical(self, "Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
                 continue
@@ -491,10 +508,8 @@ class Launcher(QMainWindow):
         for file in to_download:
             QCoreApplication.processEvents()
             self.progress_bar.change_percent((to_download.index(file)/len(to_download))*100)
-            r = requests.get(file["link"])
             os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
-            with open(file["path"], "wb") as f:
-                f.write(r.content)
+            gdown.download(file["link"], file["path"], quiet=True)
 
         #any file not in tree.json is removed.
         self.progress_bar.change_text("Cleanup...")
@@ -522,6 +537,11 @@ class Launcher(QMainWindow):
         text = self.about_text_full.format(mod_version=self.mod_version, launcher_version=self.launcher_version)
         self.about_window.setInformativeText(text)
         self.about_window.show()
+
+    def gameranger(self):
+        text = self.gameranger_help_full.format(path=os.path.abspath(__file__), path_rotwk=self.path_rotwk)
+        self.gameranger_help.setInformativeText(text)
+        self.gameranger_help.show()
 
 if __name__ == '__main__':
     try:
