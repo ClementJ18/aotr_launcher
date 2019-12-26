@@ -66,11 +66,12 @@ class Button(QPushButton):
 
     def enterEvent(self, QEvent):
         #generate white highlight
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(50)
-        shadow.setColor(QColor(255, 255, 255, 255))
-        shadow.setOffset(0, 0)
-        self.setGraphicsEffect(shadow)
+        if self.isEnabled():
+            shadow = QGraphicsDropShadowEffect(self)
+            shadow.setBlurRadius(50)
+            shadow.setColor(QColor(255, 255, 255, 255))
+            shadow.setOffset(0, 0)
+            self.setGraphicsEffect(shadow)
 
     def leaveEvent(self, QEvent):
         #reset to normal shadow
@@ -153,7 +154,7 @@ class Launcher(QMainWindow):
         #bit of code required for google drive, don't touch
         self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
-        self.launcher_version = "v1b3"
+        self.launcher_version = "v1"
         self.mod_version = 'unknown'
 
         self.is_gr = False
@@ -279,12 +280,21 @@ class Launcher(QMainWindow):
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
 
+        #make sure the file where the flags are stored exists.
+        Path(self.path_flags).touch(exist_ok=True)
+
         # check if a new version is available online by comparing to the version of the tree.json, if we can't find a tree.json
         # we assume that a new version is available
         if not self.is_gr:
             if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
-                request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
-                r = requests.get(request["files"][0]["webContentLink"])
+                try:
+                    request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
+                    r = requests.get(request["files"][0]["webContentLink"])
+                except IndexError:
+                    QMessageBox.critical(self, "Error", "Did not find tree.json, you cannot currentl update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
+                    return
+
+
                 
                 with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
                     version = json.load(f)["version"]
@@ -296,8 +306,6 @@ class Launcher(QMainWindow):
             else:
                 QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
-        #make sure the file where the flags are stored exists.
-        Path(self.path_flags).touch(exist_ok=True)
 
     def flags_dialog(self):
         #allow for users to modify, add or remove flags
@@ -438,7 +446,7 @@ class Launcher(QMainWindow):
             tree = next((file for file in files if file['name'] == "tree.json"), None)
             r = requests.get(tree["webContentLink"])
         except TypeError:
-            raise TypeError("Did not find tree.json, please report this bug to the discord.")
+            raise TypeError("Did not find tree.json, you cannot currentl update but can still play. Please report this bug to the discord.")
 
         with open(os.path.join(self.path_aotr, "tree.json"), "wb") as f:
             f.write(r.content)

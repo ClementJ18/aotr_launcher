@@ -13,6 +13,7 @@ import shutil
 import win32com.client
 import webbrowser
 import traceback
+import subprocess
 
 class Installer(QWidget):
     def __init__(self):
@@ -20,7 +21,7 @@ class Installer(QWidget):
 
         self.file_path = "aotr.zip"
         self.rotwk_file_name = "cahfactions.ini"
-        self.launcher_name = "lotrbfme2ep1.exe"
+        self.launcher_name = "launcher.exe"
         self.shortcut_icon = "launcher_files/aotr.ico"
 
         self.init_ui()
@@ -97,8 +98,12 @@ class Installer(QWidget):
             self.directory.setEnabled(True)
             self.pick_directory_btn.setEnabled(True)
         else:
-            QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod.", QMessageBox.Ok, QMessageBox.Ok) 
+            reply = QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod. Would you like to open the launcher?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) 
             webbrowser.open(os.path.join(self.directory.text(), "aotr/AgeOfTheRing_README.rtf"))
+
+            if reply == QMessageBox.Yes:
+                subprocess.Popen([os.path.join(self.directory.text(), self.launcher_name)])
+            
             self.close()
 
     def installation(self):

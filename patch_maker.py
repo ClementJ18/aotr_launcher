@@ -192,7 +192,7 @@ class Patcher(QMainWindow):
                 self.log.write(f"{file_path}: Old '{old_md5}' vs '{md5}' New\n")
                 if md5 != old_md5:
                     try:
-                        new_path = os.path.join(new_dir, subdir_path.replace("\\", "."))
+                        new_path = os.path.join(new_dir, subdir_path.replace("\\", ".").lower())
                         shutil.copy(file_path, new_path)
                         self.log.write(f"Successfully moved {file_path} to {new_path}\n")
                     except shutil.Error:
