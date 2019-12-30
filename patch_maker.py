@@ -199,7 +199,7 @@ class Patcher(QMainWindow):
                         QMessageBox.critical(self, "shutil Error", f"{str(e)}\n{name}")
 
         with open(os.path.join(new_dir, "tree.json"), "w+") as f:
-            json.dump(tree, f)
+            json.dump(tree, f, indent=4)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
