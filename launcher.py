@@ -509,6 +509,10 @@ class Launcher(QMainWindow):
             QCoreApplication.processEvents()
             self.progress_bar.change_percent((to_download.index(file)/len(to_download))*100)
             os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
+
+            if os.path.exists(file["path"]):
+                os.remove(file["path"])
+
             gdown.download(file["link"], file["path"], quiet=True)
 
         #any file not in tree.json is removed.
