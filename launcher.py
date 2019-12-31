@@ -92,7 +92,7 @@ class ProgressBar(QDialog):
         super(ProgressBar, self).__init__(parent)
         self.init_ui()
 
-        self.in_progress = True
+        self.in_progress = False
 
     def change_text(self, text):
         self.label.setText(text)
@@ -202,6 +202,12 @@ class Launcher(QMainWindow):
 
         self.progress_bar.in_progress = not value
 
+    def closeEvent(self, evnt):
+        if self.progress_bar.in_progress:
+            evnt.ignore()
+        else:
+            super(Launcher, self).closeEvent(evnt)
+            
     def init_ui(self):
         #button that launches the mod
         self.launch_btn = Button("Play", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_play_button.png')), self)
@@ -408,6 +414,14 @@ class Launcher(QMainWindow):
     def uninstall(self):
         #remove mode folder
         shutil.rmtree(self.path_aotr)
+
+        #try to remove shortcut
+        try:
+            desktop = os.path.expanduser("~/Desktop")
+            path = os.path.join(desktop, 'Age of the Ring Launcher.lnk')
+            os.remove(path)
+        except FileNotFoundError:
+            pass
 
         #try to remove cah fix
         try:
