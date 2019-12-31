@@ -564,7 +564,7 @@ class Launcher(QMainWindow):
 if __name__ == '__main__':
     try:
         app = QApplication(sys.argv)
-        app.setStyle('Fusion')
+        # app.setStyle('Fusion')
         gui = Launcher()
         app.exec_()
     except Exception as e:
