@@ -21,9 +21,9 @@ class FlattenLog(QMainWindow):
         self.b = QPlainTextEdit(self)
         self.b.setReadOnly(True)
         self.b.move(50, 50)
-        self.b.resize(400, 400)   
+        self.b.resize(600, 400)   
 
-        self.setFixedSize(500, 500)
+        self.setFixedSize(700, 500)
         self.setWindowTitle('Flatten Log')
 
     def write(self, text):
@@ -71,6 +71,12 @@ class Patcher(QMainWindow):
         self.flatten_btn.setEnabled(False)
         self.flatten_btn.setToolTip("Select an directory to flatten to unlock the button")
 
+        self.check_btn = QPushButton("Check", self)
+        self.check_btn.resize(250, 100)
+        self.check_btn.move(225, 325)
+        self.check_btn.clicked.connect(self.checker)
+        self.check_btn.setEnabled(False)
+
         self.about_window = QMessageBox()
         self.about_window.setIcon(QMessageBox.Information)
         self.about_window.setText("About the AOTR Patch Maker")
@@ -107,7 +113,7 @@ class Patcher(QMainWindow):
 
         self.log = FlattenLog(self)
 
-        self.setFixedSize(700, 350)
+        self.setFixedSize(700, 450)
         self.setWindowTitle('Patch Maker')
 
         self.show()
@@ -136,7 +142,8 @@ class Patcher(QMainWindow):
         text = str(QFileDialog.getExistingDirectory(self, f"Select flatten directory"))
         if text != "":
             self.directory.setText(text)
-            self.flatten_btn.setEnabled(True)  
+            self.flatten_btn.setEnabled(True)
+            self.check_btn.setEnabled(True)  
 
     def pick_tree(self):
         text = str(QFileDialog.getOpenFileName(self, f"Select tree file")[0])
@@ -155,6 +162,25 @@ class Patcher(QMainWindow):
             hasher.update(buf)
 
         return hasher.hexdigest()
+
+    def checker(self):
+        self.log.b.clear()
+        self.log.show()
+        self.log.debug = True
+
+        for path, _, files in os.walk(self.directory.text()):
+            for name in files:
+                QCoreApplication.processEvents()
+                if name in ["desktop.ini"]:
+                    continue
+
+                if "(1)" in name or "(2)" in name or "(3)" in name:
+                    file_path = os.path.join(path, name)
+                    subdir_path = file_path.replace(f"{self.directory.text()}\\", '')
+                    self.log.write(f"Duplicate file {subdir_path}\n")
+
+        self.log.write("Done.")
+        self.debug.isChecked()
 
     def flatten(self):
         QCoreApplication.processEvents()
