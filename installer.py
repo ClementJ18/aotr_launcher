@@ -23,6 +23,7 @@ class Installer(QWidget):
         self.rotwk_file_name = "cahfactions.ini"
         self.launcher_name = "launcher.exe"
         self.shortcut_icon = "launcher_files/aotr.ico"
+        self.url_changelog = "https://docs.google.com/document/d/12XteHeviEyIz8jaGMTyjKVeuJUVmEYUX4jbixkJFzhU/edit"
 
         self.init_ui()
 
@@ -99,7 +100,7 @@ class Installer(QWidget):
             self.pick_directory_btn.setEnabled(True)
         else:
             reply = QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod. Would you like to open the launcher?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) 
-            webbrowser.open(os.path.join(self.directory.text(), "aotr/AgeOfTheRing_README.rtf"))
+            webbrowser.open(self.url_changelog)
 
             if reply == QMessageBox.Yes:
                 subprocess.Popen([os.path.join(self.directory.text(), self.launcher_name)])

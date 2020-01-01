@@ -132,10 +132,11 @@ class Launcher(QMainWindow):
         super().__init__()
 
         #links for the menu buttons
-        self.url_support = "https://www.moddb.com/mods/the-horse-lords-a-total-modification-for-bfme/tutorials/installing-age-of-the-ring-and-common-issues"
-        self.url_discord = "https://discord.gg/SHm3QrZ"
-        self.url_wiki    = "https://aotr.wikia.com/wiki/AOTR_Wiki"
-        self.url_forums  = "https://forums.revora.net/forum/2601-age-of-the-ring/"
+        self.url_support   = "https://www.moddb.com/mods/the-horse-lords-a-total-modification-for-bfme/tutorials/installing-age-of-the-ring-and-common-issues"
+        self.url_discord   = "https://discord.gg/SHm3QrZ"
+        self.url_wiki      = "https://aotr.wikia.com/wiki/AOTR_Wiki"
+        self.url_forums    = "https://forums.revora.net/forum/2601-age-of-the-ring/"
+        self.url_changelog = "https://docs.google.com/document/d/12XteHeviEyIz8jaGMTyjKVeuJUVmEYUX4jbixkJFzhU/edit"
 
         #text for the about menu button
         self.about_text_intro = "About Age of the Ring"
