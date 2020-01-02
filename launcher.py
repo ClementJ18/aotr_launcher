@@ -276,7 +276,7 @@ class Launcher(QMainWindow):
         forums_act = bar.addAction('Forums') #webbrowser link to the forums
         forums_act.triggered.connect(lambda: webbrowser.open_new(self.url_forums))
         
-        options_menu = bar.addMenu("Options") #submenue for uninstall and launcher flags
+        options_menu = bar.addMenu("Options...") #submenue for uninstall and launcher flags
         flags_act = options_menu.addAction("Launch Flags") #launcher flags (-win, -scriptdebug2, ect...)
         flags_act.triggered.connect(self.flags_dialog)
         uninstall_act = options_menu.addAction('Uninstall') #uninstall
