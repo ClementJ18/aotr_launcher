@@ -143,8 +143,8 @@ class Launcher(QMainWindow):
         self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. <br> The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. <br><br> The launcher was created by Necro#6714. You can report bugs or see the source code <a href='https://github.com/ClementJ18/aotr_launcher'>on GitHub</a><br><br>Mod Version: {mod_version}<br>Launcher Version: {launcher_version}"
 
         #text for the gamerange assistant
-        self.gameranger_help_intro = "Follow these instructions to get gameranger working with the new Age of the Ring launcher"
-        self.gameranger_help_full = "<ol><li>Go to User > Options and then the Game Tab</li><li>Scroll down to rise of the witch king</li><li>Click browse and go to this path: <b>{path}</b></li><li>Select the file called <b>lotrbfme2ep1.exe</b></li></ol> Once you've completed this you will now be able to play AOTR using Gameranger. To switch back simply repeat the procedure but instead select the <b>lotrbfme2ep1.exe</b> file located in <b>{path_rotwk}</b>"
+        self.gameranger_help_intro = "Follow these instructions to get Gameranger working with the new Age of the Ring launcher"
+        self.gameranger_help_full = "<ol><li>Go to User > Options and then the Game Tab</li><li>Scroll down to rise of the witch king</li><li>Click browse and go to this folder: <b>{path}</b></li><li>Select the file called <b>lotrbfme2ep1.exe</b></li></ol> Once you've completed this you will now be able to play AotR using Gameranger. To switch back simply repeat the procedure but instead select the <b>lotrbfme2ep1.exe</b> file located in <b>{path_rotwk}</b>"
 
         #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
@@ -558,7 +558,7 @@ class Launcher(QMainWindow):
         self.about_window.show()
 
     def gameranger(self):
-        text = self.gameranger_help_full.format(path=os.path.abspath(__file__), path_rotwk=self.path_rotwk)
+        text = self.gameranger_help_full.format(path=os.path.dirname(os.path.abspath(__file__)), path_rotwk=self.path_rotwk)
         self.gameranger_help.setInformativeText(text)
         self.gameranger_help.show()
 
