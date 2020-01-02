@@ -266,7 +266,7 @@ class Launcher(QMainWindow):
 
         #menu containing the rest of the buttons
         bar = self.menuBar()
-        bar.setStyleSheet("QMenuBar {background-color: white;}")
+        # bar.setStyleSheet("QMenuBar {background-color: white;}")
         about_act = bar.addAction('About') # about box
         about_act.triggered.connect(self.about)
         self.repair_act = bar.addAction('Repair') #basically an update but named repair for users
