@@ -430,6 +430,7 @@ class Launcher(QMainWindow):
         except FileNotFoundError:
             pass
         
+        QMessageBox.information(self, "Uninstallation Successful", "AOTR has been succesfully removed, the launcher will exit after you press okay and then delete itself.", QMessageBox.Ok, QMessageBox.Ok)
         #create process to remove the remains of the folder 5 seconds after we close the launcher
         folder = '{}'.format(os.path.dirname(os.path.abspath(__file__)))
         subprocess.Popen(['timeout', '5', '&', 'rmdir', '/Q', '/S', folder], shell=True, cwd=self.uninstaller)

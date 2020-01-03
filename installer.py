@@ -20,7 +20,7 @@ class Installer(QWidget):
         super().__init__()
 
         self.file_path = "aotr.zip"
-        self.rotwk_file_name = "cahfactions.ini"
+        # self.rotwk_file_name = "cahfactions.ini"
         self.launcher_name = "launcher.exe"
         self.shortcut_icon = "launcher_files/aotr.ico"
         self.url_changelog = "https://docs.google.com/document/d/12XteHeviEyIz8jaGMTyjKVeuJUVmEYUX4jbixkJFzhU/edit"
@@ -54,6 +54,7 @@ class Installer(QWidget):
         self.setWindowTitle('Age of the Ring Installer')
 
         self.show()
+        self.path_rotwk = "GAME NOT FOUND"
 
         try:
             # reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
@@ -64,8 +65,7 @@ class Installer(QWidget):
             key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
             self.path_rotwk = winreg.EnumValue(key, 5)[1]
         except FileNotFoundError:
-            QMessageBox.critical(self, "Error", "Could not detect Rise of the Witch King. Please make sure you have it installed", QMessageBox.Ok, QMessageBox.Ok)
-            self.close()            
+            QMessageBox.critical(self, "Error", "Could not detect Rise of the Witch King. The installation will proceed but you may be unable to launch the game.", QMessageBox.Ok, QMessageBox.Ok)           
 
     def pick_directory(self):
         text = str(QFileDialog.getExistingDirectory(self, f"Select installation directory"))
@@ -119,7 +119,7 @@ class Installer(QWidget):
                 self.progress_bar.setValue(extracted_size * 100/uncompress_size)
                 zf.extract(file, self.directory.text())
 
-            shutil.copyfile(self.rotwk_file_name, f"{self.path_rotwk}\\{self.rotwk_file_name}")
+            # shutil.copyfile(self.rotwk_file_name, f"{self.path_rotwk}\\{self.rotwk_file_name}")
         except Exception:
             shutil.rmtree(self.directory.text())
             raise
@@ -152,7 +152,7 @@ class Installer(QWidget):
 if __name__ == '__main__':
     try:
         app = QApplication(sys.argv)
-        app.setStyle('Fusion')
+        # app.setStyle('Fusion')
         gui = Installer()
         app.exec_()
     except Exception as e:
