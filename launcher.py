@@ -304,7 +304,7 @@ class Launcher(QMainWindow):
             key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
             self.path_rotwk = winreg.EnumValue(key, 5)[1]
         except FileNotFoundError:
-            QMessageBox.critical(self, "Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.critical(self, "Base Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
 
         #make sure the file where the flags are stored exists.
         Path(self.path_flags).touch(exist_ok=True)
@@ -317,7 +317,7 @@ class Launcher(QMainWindow):
                     request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
                     r = requests.get(request["files"][0]["webContentLink"])
                 except IndexError:
-                    QMessageBox.critical(self, "Error", "Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
+                    QMessageBox.critical(self, "Base Error", "Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
                     return
 
                 with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
@@ -360,7 +360,7 @@ class Launcher(QMainWindow):
             time.sleep(3)
             subprocess.Popen([os.path.join(self.path_rotwk, "lotrbfme2ep1.exe"), "-mod", f"{self.path_aotr}", *flags], cwd=self.path_aotr)
         except Exception as e:
-            QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.critical(self, "Launch Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def update(self):
         #wrapper to handle any errors that may occur while updating the mod
@@ -373,7 +373,7 @@ class Launcher(QMainWindow):
             updated = self.file_fixer("Update")
         except Exception as e:
             self.enabled(True)
-            QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.critical(self, "Update Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
             self.progress_bar.hide()
         else:
             self.enabled(True)
@@ -396,7 +396,7 @@ class Launcher(QMainWindow):
             self.file_fixer("Repair")
         except Exception as e:
             self.enabled(True)
-            QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.critical(self, "Repair Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
             self.progress_bar.hide()
         else:
             self.enabled(True)
@@ -410,7 +410,7 @@ class Launcher(QMainWindow):
             try:
                 self.uninstall()
             except Exception as e:
-                QMessageBox.critical(self, "Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+                QMessageBox.critical(self, "Uninstall Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
     def uninstall(self):
         #remove mode folder
@@ -497,7 +497,7 @@ class Launcher(QMainWindow):
             full_path = os.path.join(self.path_aotr, file["path"])
             download = next((f for f in files if f['name'] == file["path"].replace("\\", ".").lower()), None)
             if download is None:
-                QMessageBox.critical(self, "Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
+                QMessageBox.critical(self, "Drive Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
                 continue
 
             if not os.path.exists(full_path):
