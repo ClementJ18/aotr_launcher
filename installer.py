@@ -147,7 +147,7 @@ class Installer(QWidget):
                 file.write(ba)
 
         except Exception:
-            raise        
+            QMessageBox.warning(self, "Shortcut Failure", "Unable to create a shortcut pn your desktop, the installation has however been successful.", QMessageBox.Ok, QMessageBox.Ok)        
 
 if __name__ == '__main__':
     try:

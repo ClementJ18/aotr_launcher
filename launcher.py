@@ -140,11 +140,11 @@ class Launcher(QMainWindow):
 
         #text for the about menu button
         self.about_text_intro = "About Age of the Ring"
-        self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. <br> The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. <br><br> The launcher was created by Necro#6714. You can report bugs or see the source code <a href='https://github.com/ClementJ18/aotr_launcher'>on GitHub</a><br><br>Mod Version: {mod_version}<br>Launcher Version: {launcher_version}"
+        self.about_text_full = "Age of the Ring is a fanmade, not-for-profit game modification. <br> The Battle for Middle-earth 2 - Rise of the Witch-king © 2006 Electronic Arts Inc. All Rights Reserved. All “The Lord of the Rings” related content other than content from the New Line Cinema Trilogy of “The Lord of the Rings” films © 2006 The Saul Zaentz Company d/b/a Tolkien Enterprises (”SZC”). All Rights Reserved. All content from “The Lord of the Rings” film trilogy © MMIV New Line Productions Inc. All Rights Reserved. “The Lord of the Rings” and the names of the characters, items, events and places therein are trademarks or registered trademarks of SZC under license. <br><br> The launcher was created by Eternadarm#0529. You can report bugs or see the source code <a href='https://github.com/ClementJ18/aotr_launcher'>on GitHub</a><br><br>Mod Version: {mod_version}<br>Launcher Version: {launcher_version}"
 
         #text for the gamerange assistant
         self.gameranger_help_intro = "Follow these instructions to get Gameranger working with the new Age of the Ring launcher"
-        self.gameranger_help_full = "<ol><li>Go to User > Options and then the Game Tab</li><li>Scroll down to rise of the witch king</li><li>Click browse and go to this folder: <b>{path}</b></li><li>Select the file called <b>lotrbfme2ep1.exe</b></li></ol> Once you've completed this you will now be able to play AotR using Gameranger. To switch back simply repeat the procedure but instead select the <b>lotrbfme2ep1.exe</b> file located in <b>{path_rotwk}</b>"
+        self.gameranger_help_full = "<ol><li>Go to Edit > Options and then the Game Tab</li><li>Scroll down to rise of the witch king</li><li>Click browse and go to this folder: <b>{path}</b></li><li>Select the file called <b>lotrbfme2ep1.exe</b></li></ol> Once you've completed this you will now be able to play AotR using Gameranger. To switch back simply repeat the procedure but instead select the <b>lotrbfme2ep1.exe</b> file located in <b>{path_rotwk}</b>"
 
         #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")
@@ -381,7 +381,7 @@ class Launcher(QMainWindow):
             if updated:
                 reply = QMessageBox.information(self, "Update Successful", "Age of the Ring updated, would you like to read the changelog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
                 if reply == QMessageBox.Yes:
-                    webbrowser.open(os.path.join(self.path_aotr, "AgeOfTheRing_README.rtf"))
+                    webbrowser.open(self.url_changelog)
             else:
                 QMessageBox.information(self, "No Update", "No new update was available, no files have been modified.", QMessageBox.Ok, QMessageBox.Ok)
 
@@ -528,7 +528,8 @@ class Launcher(QMainWindow):
             if os.path.exists(file["path"]):
                 os.remove(file["path"])
 
-            gdown.download(file["link"], file["path"], quiet=True)
+            with open(file["path"], "wb") as f:
+                gdown.download(file["link"], f, quiet=True)
 
         #any file not in tree.json is removed.
         self.progress_bar.change_text("Cleanup...")
