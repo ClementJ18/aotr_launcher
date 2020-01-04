@@ -64,13 +64,17 @@ class Installer(QWidget):
             reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
             key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
             self.path_rotwk = winreg.EnumValue(key, 5)[1]
+
+            #in case the user has installed a weird version of ROTWK
+            if os.path.isfile(self.path_rotwk):
+                self.path_rotwk = os.path.dirname(self.path_rotwk)
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", "Could not detect Rise of the Witch King. The installation will proceed but you may be unable to launch the game.", QMessageBox.Ok, QMessageBox.Ok)           
 
     def pick_directory(self):
         text = str(QFileDialog.getExistingDirectory(self, f"Select installation directory"))
         if text != "":
-            if text == self.path_rotwk.replace("\\", "/"):
+            if os.path.samefile(self.path_rotwk, text):
                 QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.", QMessageBox.Ok, QMessageBox.Ok)
                 return
 
@@ -81,7 +85,7 @@ class Installer(QWidget):
         #3. Extract the rest of the files into the AOTR folder
         #4. Generate shortcut???
         if not os.path.isfile(f'{self.path_rotwk}\\##########202_v8.0.0.big'):
-            reply = QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated, it is recommended to have 2.02 enabled when installing the mod. Note that ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok)
+            reply = QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated, ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok)
 
             if reply == QMessageBox.Cancel:
                 return

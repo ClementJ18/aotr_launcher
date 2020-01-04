@@ -27,8 +27,6 @@ from pathlib import Path
 import time
 import gdown
 
-logging.basicConfig(level=logging.DEBUG, filename= os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), filemode="w")
-
 user_agent_list = [
     #Chrome
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
@@ -76,7 +74,7 @@ class Button(QPushButton):
 
     def leaveEvent(self, QEvent):
         #reset to normal shadow
-        self.parent()._generate_shadow(self)
+        self.parent().generate_shadow(self)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -163,7 +161,13 @@ class Launcher(QMainWindow):
         self.launcher_version = "v1"
         self.mod_version = 'unknown'
 
+        self.session = requests.Session()
+        a = requests.adapters.HTTPAdapter(max_retries=5)
+        self.session.mount('http://', a)
+        self.session.mount('https://', a)
+
         self.is_gr = False
+        self.is_cah_fix = False
 
         #initialize the google drive credentials and store them into memory
         try:
@@ -186,7 +190,7 @@ class Launcher(QMainWindow):
         self.files_service = service.files()
 
 
-    def _generate_shadow(self, button):
+    def generate_shadow(self, button):
         #used to generate the standard black shadow for buttons
         shadow = QGraphicsDropShadowEffect(button)
         shadow.setBlurRadius(15)
@@ -215,28 +219,28 @@ class Launcher(QMainWindow):
         self.launch_btn.resize(177, 70)
         self.launch_btn.move(162, 111)
         self.launch_btn.clicked.connect(self.launch)
-        self._generate_shadow(self.launch_btn)
+        self.generate_shadow(self.launch_btn)
 
         #button that updates the mod
         self.update_btn = Button("Update", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher_update_button.png")), self)
         self.update_btn.resize(177, 70)
         self.update_btn.move(162, 207)
         self.update_btn.clicked.connect(self.update)
-        self._generate_shadow(self.update_btn)
+        self.generate_shadow(self.update_btn)
 
         #button that opens a webbrowser to invite you to the aotr community server
         self.discord_btn = Button("Discord", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_discord_button.png')), self)
         self.discord_btn.resize(87, 34)
         self.discord_btn.move(207, 303)
         self.discord_btn.clicked.connect(lambda: webbrowser.open_new(self.url_discord))
-        self._generate_shadow(self.discord_btn)
+        self.generate_shadow(self.discord_btn)
 
         #button that oppens a webbrowser to the moddb page for support help
         self.support_btn = Button("Support", QPixmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'launcher_files/launcher_support_button.png')), self)
         self.support_btn.resize(87, 34)
         self.support_btn.move(207, 363)
         self.support_btn.clicked.connect(lambda: webbrowser.open_new(self.url_support))
-        self._generate_shadow(self.support_btn)
+        self.generate_shadow(self.support_btn)
         
         #about box containing disaclaimer, hidden at the start
         self.about_window = QMessageBox()
@@ -303,6 +307,10 @@ class Launcher(QMainWindow):
             reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
             key = winreg.OpenKey(reg, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\lotrbfme2ep1.exe")
             self.path_rotwk = winreg.EnumValue(key, 5)[1]
+
+            #in case the user has installed a weird version of ROTWK
+            if os.path.isfile(self.path_rotwk):
+                self.path_rotwk = os.path.dirname(self.path_rotwk)
         except FileNotFoundError:
             QMessageBox.critical(self, "Base Error", "Could not locate ROTWK installation. Make sure ROTWK is installed", QMessageBox.Ok, QMessageBox.Ok)
 
@@ -315,13 +323,13 @@ class Launcher(QMainWindow):
             if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
                 try:
                     request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
-                    r = requests.get(request["files"][0]["webContentLink"])
+                    r = self.session.get(request["files"][0]["webContentLink"])
                 except IndexError:
                     QMessageBox.critical(self, "Base Error", "Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
                     return
 
-                with open(os.path.join(self.path_aotr, "tree.json"), "r") as f:
-                    version = json.load(f)["version"]
+                with open(os.path.join(self.path_aotr, "tree.json"), "r") as file:
+                    version = json.load(file)["version"]
                     version_online = json.loads(r.content.decode('utf-8'))["version"]
                     self.mod_version = version
 
@@ -330,35 +338,51 @@ class Launcher(QMainWindow):
             else:
                 QMessageBox.information(self, "Update Available", "An update is available, click the update button to begin updating.",    QMessageBox.Ok, QMessageBox.Ok)
 
+        try:
+            logging.basicConfig(level=logging.DEBUG, filename= os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), filemode="w")
+        except:
+            pass
 
     def flags_dialog(self):
         #allow for users to modify, add or remove flags
-        with open(self.path_flags, "r") as f:
-            current_flags = f.read()
+        with open(self.path_flags, "r") as file:
+            current_flags = file.read()
 
-        new_flags, ok = QInputDialog.getText(self, "Flags","Additional launch flags: ", 
-            QLineEdit.Normal, current_flags, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint) 
-            # this removes the ? that appeared in the dialog.
+        new_flags, ok = QInputDialog.getText(
+            self, 
+            "Flags","Additional launch flags: ", 
+            QLineEdit.Normal, 
+            current_flags, 
+            flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint # this removes the ? that appeared in the dialog.
+        ) 
+        
         if ok:
-            with open(self.path_flags, "w") as f:
-                f.write(new_flags)
+            with open(self.path_flags, "w") as file:
+                file.write(new_flags)
 
     def launch(self):
         #Launch game with the -mod command
-        with open(self.path_flags, "r") as f:
-            flags = f.read().split(" ")
+        with open(self.path_flags, "r") as file:
+            flags = file.read().split(" ")
 
         #make sure the cah fix file exists in the rotwk game folder
-        cah_fix = os.path.join(self.path_rotwk, self.file_rotwk)
-        if not os.path.exists(cah_fix):
-            to_copy = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/cahfactions.ini")
-            shutil.copyfile(to_copy, cah_fix)
+        if self.is_cah_fix:
+            cah_fix = os.path.join(self.path_rotwk, self.file_rotwk)
+            if not os.path.exists(cah_fix):
+                to_copy = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/cahfactions.ini")
+                shutil.copyfile(to_copy, cah_fix)
 
         #launch the .exe used to fix the CAH problem, waiting a couple seconds, then launch the mod
         try:
-            subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")], cwd=self.path_aotr)
-            time.sleep(3)
+            if self.is_cah_fix:
+                subprocess.Popen([os.path.join(self.path_aotr, "BFME2X.exe")], cwd=self.path_aotr)
+                time.sleep(3)
+
             subprocess.Popen([os.path.join(self.path_rotwk, "lotrbfme2ep1.exe"), "-mod", f"{self.path_aotr}", *flags], cwd=self.path_aotr)
+            
+            if self.is_cah_fix:
+                time.sleep(3)
+                os.remove(cah_fix) #clean up
         except Exception as e:
             QMessageBox.critical(self, "Launch Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
 
@@ -460,7 +484,7 @@ class Launcher(QMainWindow):
         folder = self.files_service.get(fileId=self.folder_id, fields="*").execute()
         modified_by = datetime.datetime.strptime(folder["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fz")
         if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
-            raise ValueError(f"Cannot currently {string.lower()}, please try again later.")
+            raise ValueError(f"Cannot currently {string.lower()} because devs are making changes, please try again later.")
 
         #we can only get a thousand files at a time, so we keep going until we have them all.
         request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
@@ -477,12 +501,12 @@ class Launcher(QMainWindow):
         #then we make sure that we have the tree.json file and save the new one to the folder
         try:
             tree = next((file for file in files if file['name'] == "tree.json"), None)
-            r = requests.get(tree["webContentLink"])
+            r = self.session.get(tree["webContentLink"])
         except TypeError:
             raise TypeError("Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.")
 
-        with open(os.path.join(self.path_aotr, "tree.json"), "wb") as f:
-            f.write(r.content)
+        with open(os.path.join(self.path_aotr, "tree.json"), "wb") as file:
+            file.write(r.content)
 
         #we check every file by comparing the hash of the local file vs the hash of the file stored in the tree.json
         #we also check if the file exists at all
@@ -526,11 +550,12 @@ class Launcher(QMainWindow):
             self.progress_bar.change_percent((to_download.index(file)/len(to_download))*100)
             os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
 
+            #casing is annoying, have to remove file before in case the casing of the name changes
             if os.path.exists(file["path"]):
                 os.remove(file["path"])
 
-            with open(file["path"], "wb") as f:
-                gdown.download(file["link"], f, quiet=True)
+            with open(file["path"], "wb") as file_io:
+                gdown.download(file["link"], file_io, quiet=True)
 
         #any file not in tree.json is removed.
         self.progress_bar.change_text("Cleanup...")
@@ -572,5 +597,6 @@ if __name__ == '__main__':
         app.exec_()
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        sam =  traceback.format_exception(exc_type, exc_value, exc_traceback)
-        logging.error(sam)
+        sam = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log", "a+")) as f:
+            f.write(sam)
