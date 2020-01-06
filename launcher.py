@@ -142,7 +142,7 @@ class Launcher(QMainWindow):
 
         #text for the gamerange assistant
         self.gameranger_help_intro = "Follow these instructions to get Gameranger working with the new Age of the Ring launcher"
-        self.gameranger_help_full = "<ol><li>Go to Edit > Options and then the Game Tab</li><li>Scroll down to rise of the witch king</li><li>Click browse and go to this folder: <b>{path}</b></li><li>Select the file called <b>lotrbfme2ep1.exe</b></li></ol> Once you've completed this you will now be able to play AotR using Gameranger. To switch back simply repeat the procedure but instead select the <b>lotrbfme2ep1.exe</b> file located in <b>{path_rotwk}</b>"
+        self.gameranger_help_full = "<ol><li>Go to Edit > Options and then the Game Tab</li><li>Scroll down to <b>Rise of the Witch-King</b></li><li>Click browse and go to this folder: <b>{path}</b></li><li>Select the file called <b>lotrbfme2ep1.exe</b></li></ol> Once you've completed this you will now be able to play AotR using Gameranger. To switch back simply repeat the procedure but instead select the <b>lotrbfme2ep1.exe</b> file located in <b>{path_rotwk}</b>"
 
         #handy paths to avoid having to constantly recreate them
         self.path_aotr = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aotr")

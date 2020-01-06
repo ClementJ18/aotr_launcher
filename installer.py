@@ -76,7 +76,7 @@ class Installer(QWidget):
         if text != "":
             if os.path.samefile(self.path_rotwk, text):
                 QMessageBox.critical(self, "Error", "The mod must NOT be installed in your game folder, please select another installation folder.", QMessageBox.Ok, QMessageBox.Ok)
-                return
+                return            
 
             self.directory.setText(f"{text}/Age of the Ring")
 
@@ -112,7 +112,11 @@ class Installer(QWidget):
             self.close()
 
     def installation(self):
-        os.makedirs(self.directory.text())
+        try:
+            os.makedirs(self.directory.text())
+        except FileExistsError:
+            raise FileExistsError("There is already a folder at that location. Change the installer's directory to one that doesn't exist or delete the existing folder")
+
         zf = zipfile.ZipFile(self.file_path)
         uncompress_size = sum((file.file_size for file in zf.infolist()))
         extracted_size = 0
@@ -151,7 +155,7 @@ class Installer(QWidget):
                 file.write(ba)
 
         except Exception:
-            QMessageBox.warning(self, "Shortcut Failure", "Unable to create a shortcut pn your desktop, the installation has however been successful.", QMessageBox.Ok, QMessageBox.Ok)        
+            QMessageBox.warning(self, "Shortcut Failure", "Unable to create a shortcut on your desktop, the installation has however been successful and you will find the launcher in the folder you selected.", QMessageBox.Ok, QMessageBox.Ok)        
 
 if __name__ == '__main__':
     try:
