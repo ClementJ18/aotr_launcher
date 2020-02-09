@@ -93,7 +93,7 @@ class ProgressBar(QDialog):
         self.label.resize(self.label.sizeHint())
 
     def change_percent(self, value):
-        self.bar.setValue(value)
+        self.bar.setValue(int(value))
 
     def init_ui(self):
         self.label = QLabel("Gathering file data...", self)
