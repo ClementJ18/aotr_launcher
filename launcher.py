@@ -299,7 +299,7 @@ class Launcher(QMainWindow):
         if not self.is_gr:
             if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
                 try:
-                    file_info = self.project.files.get(file_path="tree.json")
+                    file_info = self.project.files.get(file_path="tree.json", ref="master")
                     content = base64.b64decode(file_info.content)
                     version_online = json.loads(content)
                 except IndexError:
@@ -462,7 +462,7 @@ class Launcher(QMainWindow):
         if no_down:
             raise ValueError(f"Cannot currently {string.lower()} because devs are making changes, please try again later.")
         
-        file_info = self.project.files.get(file_path="tree.json")
+        file_info = self.project.files.get(file_path="tree.json", ref="master")
         content = base64.b64decode(file_info.content)
         tree = json.loads(content)
         
@@ -511,7 +511,7 @@ class Launcher(QMainWindow):
                 os.remove(file["path"])
 
             with open(file["path"], "wb") as file_io:
-                content = self.project.files.get(file_path="source/{}".format(file["name"]))
+                content = self.project.files.get(file_path="source/{}".format(file["name"]), ref="master")
                 file_io.write(content)
 
         #any file not in tree.json is removed.
