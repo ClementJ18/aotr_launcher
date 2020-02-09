@@ -555,5 +555,5 @@ if __name__ == '__main__':
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         sam = traceback.format_exception(exc_type, exc_value, exc_traceback)
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log", "a+")) as f:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/launcher.log"), "a+") as f:
             f.write(sam)
