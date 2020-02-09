@@ -85,7 +85,7 @@ class Installer(QWidget):
         #3. Extract the rest of the files into the AOTR folder
         #4. Generate shortcut???
         if not os.path.isfile(f'{self.path_rotwk}\\##########202_v8.0.0.big'):
-            reply = QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated, ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you will be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok)
+            reply = QMessageBox.warning(self, "ROTWK Version", "The installer has detected you do not have 2.02 activated, ROTWK needs to be set to 2.02 in order to play the mod. The installation will proceed but you may be unable to properly play the mod until you switch to 2.02", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok)
 
             if reply == QMessageBox.Cancel:
                 return
@@ -103,7 +103,7 @@ class Installer(QWidget):
             self.directory.setEnabled(True)
             self.pick_directory_btn.setEnabled(True)
         else:
-            reply = QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod. Would you like to open the launcher?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) 
+            reply = QMessageBox.information(self, "Status", "Successfully installed, enjoy the mod. The changelog will now open. Would you also like to open the launcher?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) 
             webbrowser.open(self.url_changelog)
 
             if reply == QMessageBox.Yes:
@@ -117,7 +117,11 @@ class Installer(QWidget):
         except FileExistsError:
             raise FileExistsError("There is already a folder at that location. Change the installer's directory to one that doesn't exist or delete the existing folder")
 
-        zf = zipfile.ZipFile(self.file_path)
+        try:
+            zf = zipfile.ZipFile(self.file_path)
+        except FileNotFoundError:
+            raise FileNotFoundError("Could not find the aotr.zip file, please make sure both are extracted to the same folder.")
+            
         uncompress_size = sum((file.file_size for file in zf.infolist()))
         extracted_size = 0
         try:
@@ -133,12 +137,10 @@ class Installer(QWidget):
             raise
 
         try:
-            desktop = os.path.expanduser("~/Desktop")
-            path = os.path.join(desktop, 'Age of the Ring Launcher.lnk')
-            target = f"{self.directory.text()}\\{self.launcher_name}"
-
+            target = os.path.join(self.directory.text(), self.launcher_name)
             shell = win32com.client.Dispatch("WScript.Shell")
-            shortcut = shell.CreateShortCut(path)
+            desktop = os.path.join(shell.SpecialFolders('Desktop'), 'Age of the Ring Launcher.lnk')
+            shortcut = shell.CreateShortCut(desktop)
             shortcut.Targetpath = target
             shortcut.IconLocation = os.path.join(self.directory.text(), self.shortcut_icon)
             shortcut.WindowStyle = 7 # 7 - Minimized, 3 - Maximized, 1 - Normal
@@ -154,7 +156,7 @@ class Installer(QWidget):
             with open(path, "wb") as file:
                 file.write(ba)
 
-        except Exception:
+        except:
             QMessageBox.warning(self, "Shortcut Failure", "Unable to create a shortcut on your desktop, the installation has however been successful and you will find the launcher in the folder you selected.", QMessageBox.Ok, QMessageBox.Ok)        
 
 if __name__ == '__main__':

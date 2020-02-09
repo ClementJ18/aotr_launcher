@@ -149,7 +149,7 @@ class Patcher(QMainWindow):
         text = str(QFileDialog.getOpenFileName(self, f"Select tree file")[0])
         self.tree.setText(text)
 
-        if self.version.text() == "":
+        if self.version.text() == "" and self.tree.text() != "":
             with open(text, "r") as f:
                 l = json.load(f)
 
@@ -192,10 +192,11 @@ class Patcher(QMainWindow):
             old_tree = {}
 
         tree = {"files": {}, "version": self.version.text() or old_tree["version"]}
-        new_dir = os.path.join(self.directory.text(), '..', 'AgeoftheRingUpdate') 
+        source_dir = os.path.join(self.directory.text(), '..', 'AgeoftheRingUpdate') 
+        new_dir = os.path.join(source_dir, "source")
         try:
             self.log.write("Creating release directory one level up\n")
-            os.mkdir(new_dir)
+            os.mkdirs(new_dir)
         except FileExistsError as e:
             QMessageBox.critical(self, "Dir Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
             return
@@ -224,7 +225,7 @@ class Patcher(QMainWindow):
                     except shutil.Error:
                         QMessageBox.critical(self, "shutil Error", f"{str(e)}\n{name}")
 
-        with open(os.path.join(new_dir, "tree.json"), "w+") as f:
+        with open(os.path.join(source_dir, "tree.json"), "w+") as f:
             json.dump(tree, f, indent=4)
 
 if __name__ == '__main__':

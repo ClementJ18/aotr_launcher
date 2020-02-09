@@ -6,10 +6,8 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
 from PyQt5.QtCore import Qt, QSize, QCoreApplication
 from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QPixmap, QPainter
 
-import pickle
-from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-from google.auth.exceptions import TransportError
+import gitlab
+import base64
 
 import requests
 import sys
@@ -20,12 +18,10 @@ import winreg
 import hashlib
 import json
 import logging
-import datetime
 import traceback
 import shutil
 from pathlib import Path
 import time
-import gdown
 
 user_agent_list = [
     #Chrome
@@ -151,20 +147,8 @@ class Launcher(QMainWindow):
 
         #name  of the rotwk file we need
         self.file_rotwk = "cahfactions.ini"
-
-        #google drive id of the folder used in the update process, this is where all the updates downloadedfrom
-        self.folder_id = '1LgPndLiRyS93Sl9HwNCTOnKh7_Kmop4D'
-
-        #bit of code required for google drive, don't touch
-        self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
-
         self.launcher_version = "v1"
         self.mod_version = 'unknown'
-
-        self.session = requests.Session()
-        a = requests.adapters.HTTPAdapter(max_retries=5)
-        self.session.mount('http://', a)
-        self.session.mount('https://', a)
 
         self.is_gr = False
         self.is_cah_fix = False
@@ -172,23 +156,16 @@ class Launcher(QMainWindow):
         #initialize the google drive credentials and store them into memory
         try:
             self._get_service()
-        except TransportError:
+        except Exception:
             self.is_gr = True
-            self.files_service = None
+            self.project = None
 
         self.init_ui()
 
     def _get_service(self):
-        creds = None
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "launcher_files/token.pickle"), 'rb') as token:
-            creds = pickle.load(token)
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-
-        service = build('drive', 'v3', credentials=creds)
-        self.files_service = service.files()
-
+        #https://gitlab.com/ClementJ18/aotr
+        self.gl = gitlab.Gitlab('https://gitlab.com/')
+        self.project = self.gl.projects.get("16769190")
 
     def generate_shadow(self, button):
         #used to generate the standard black shadow for buttons
@@ -322,15 +299,15 @@ class Launcher(QMainWindow):
         if not self.is_gr:
             if os.path.exists(os.path.join(self.path_aotr, "tree.json")):
                 try:
-                    request = self.files_service.list(q=f"'{self.folder_id}' in parents and name = 'tree.json'", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)").execute()
-                    r = self.session.get(request["files"][0]["webContentLink"])
+                    file_info = self.project.files.get(file_path="tree.json")
+                    content = base64.b64decode(file_info.content)
+                    version_online = json.loads(content)
                 except IndexError:
                     QMessageBox.critical(self, "Base Error", "Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
                     return
 
                 with open(os.path.join(self.path_aotr, "tree.json"), "r") as file:
                     version = json.load(file)["version"]
-                    version_online = json.loads(r.content.decode('utf-8'))["version"]
                     self.mod_version = version
 
                     if version != version_online:
@@ -379,12 +356,12 @@ class Launcher(QMainWindow):
                 time.sleep(3)
 
             subprocess.Popen([os.path.join(self.path_rotwk, "lotrbfme2ep1.exe"), "-mod", f"{self.path_aotr}", *flags], cwd=self.path_aotr)
-            
-            if self.is_cah_fix:
-                time.sleep(3)
-                os.remove(cah_fix) #clean up
         except Exception as e:
             QMessageBox.critical(self, "Launch Error", str(e), QMessageBox.Ok, QMessageBox.Ok)
+            
+        if self.is_cah_fix:
+            time.sleep(3)
+            os.remove(cah_fix) #clean up
 
     def update(self):
         #wrapper to handle any errors that may occur while updating the mod
@@ -449,12 +426,12 @@ class Launcher(QMainWindow):
             pass
 
         #try to remove cah fix
-        try:
-            os.remove(os.path.join(self.path_rotwk, self.file_rotwk))
-        except FileNotFoundError:
-            pass
+        # try:
+        #     os.remove(os.path.join(self.path_rotwk, self.file_rotwk))
+        # except FileNotFoundError:
+        #     pass
         
-        QMessageBox.information(self, "Uninstallation Successful", "AOTR has been succesfully removed, the launcher will exit after you press okay and then delete itself.", QMessageBox.Ok, QMessageBox.Ok)
+        QMessageBox.information(self, "Uninstallation Successful", "AOTR has been succesfully uninstalled, the launcher will exit after you press okay and then delete itself.", QMessageBox.Ok, QMessageBox.Ok)
         #create process to remove the remains of the folder 5 seconds after we close the launcher
         folder = '{}'.format(os.path.dirname(os.path.abspath(__file__)))
         subprocess.Popen(['timeout', '5', '&', 'rmdir', '/Q', '/S', folder], shell=True, cwd=self.uninstaller)
@@ -471,7 +448,7 @@ class Launcher(QMainWindow):
 
     def file_fixer(self, string):
         #update method
-        if self.files_service is None:
+        if self.project is None:
             self._get_service()
 
         #reset progress bar
@@ -481,37 +458,20 @@ class Launcher(QMainWindow):
         self.progress_bar.show()
 
         # check if update is possible by making sure that files haven't been uploaded in a while.
-        folder = self.files_service.get(fileId=self.folder_id, fields="*").execute()
-        modified_by = datetime.datetime.strptime(folder["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fz")
-        if modified_by > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
+        no_down = [x for x in self.project.repository_tree() if x["name"] == "nodownload"]
+        if no_down:
             raise ValueError(f"Cannot currently {string.lower()} because devs are making changes, please try again later.")
-
-        #we can only get a thousand files at a time, so we keep going until we have them all.
-        request = self.files_service.list(q=f"'{self.folder_id}' in parents", pageSize=1000, fields="nextPageToken, files(id, name, webContentLink)")
-        files = []
-        counter = 0
-        while request is not None:
-            QCoreApplication.processEvents()
-            result = request.execute()
-            counter += 1
-            self.progress_bar.change_percent((counter/20)*100)
-            files.extend(result.get("files", []))
-            request = self.files_service.list_next(request, result)
-
-        #then we make sure that we have the tree.json file and save the new one to the folder
-        try:
-            tree = next((file for file in files if file['name'] == "tree.json"), None)
-            r = self.session.get(tree["webContentLink"])
-        except TypeError:
-            raise TypeError("Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.")
-
+        
+        file_info = self.project.files.get(file_path="tree.json")
+        content = base64.b64decode(file_info.content)
+        tree = json.loads(content)
+        
         with open(os.path.join(self.path_aotr, "tree.json"), "wb") as file:
-            file.write(r.content)
+            file.write(content)
 
         #we check every file by comparing the hash of the local file vs the hash of the file stored in the tree.json
         #we also check if the file exists at all
         self.progress_bar.change_text("Verifying file integrity...")
-        tree = json.loads(r.content.decode('utf-8'))
         tree_len = len(tree["files"])
         tree_values = list(tree["files"].values())
         self.mod_version = tree["version"]
@@ -520,20 +480,16 @@ class Launcher(QMainWindow):
             QCoreApplication.processEvents()
             self.progress_bar.change_percent((tree_values.index(file)/tree_len)*100)
             full_path = os.path.join(self.path_aotr, file["path"])
-            download = next((f for f in files if f['name'] == file["path"].replace("\\", ".").lower()), None)
-            if download is None:
-                QMessageBox.critical(self, "Drive Error", f"Could not find file {file['name']} online", QMessageBox.Ok, QMessageBox.Ok)
-                continue
 
             if not os.path.exists(full_path):
                 #download new files
-                to_download.append({"link": download["webContentLink"], "path": full_path})
+                to_download.append({"name": file["path"].replace("\\", "."), "path": full_path})
                 logging.debug(f"Downloaded {file['path']}")
             else:
                 md5 = self.hash_file(full_path)
                 if md5 != file["hash"]:
                     #update existing files
-                    to_download.append({"link": download["webContentLink"], "path": full_path})
+                    to_download.append({"name": file["path"].replace("\\", "."), "path": full_path})
                     logging.debug(f"Downloaded {file['path']}")
                 else:
                     logging.debug(f"Did not download file {file['path']}")
@@ -555,7 +511,8 @@ class Launcher(QMainWindow):
                 os.remove(file["path"])
 
             with open(file["path"], "wb") as file_io:
-                gdown.download(file["link"], file_io, quiet=True)
+                content = self.project.files.get(file_path="source/{}".format(file["name"]))
+                file_io.write(content)
 
         #any file not in tree.json is removed.
         self.progress_bar.change_text("Cleanup...")
