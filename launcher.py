@@ -511,8 +511,8 @@ class Launcher(QMainWindow):
                 os.remove(file["path"])
 
             with open(file["path"], "wb") as file_io:
-                content = self.project.files.get(file_path="source/{}".format(file["name"].lower()), ref="master")
-                file_io.write(content)
+                f = self.project.files.get(file_path="source/{}".format(file["name"].lower()), ref="master")
+                file_io.write(f.content)
 
         #any file not in tree.json is removed.
         self.progress_bar.change_text("Cleanup...")
