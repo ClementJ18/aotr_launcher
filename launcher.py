@@ -122,13 +122,14 @@ class ProgressBar(QDialog):
             
 class DownloadThread(QThread):
     def __init__(self, progress_bar, to_download, project):
-        super(QThread, self).__init__(self)
+        super(QThread, self).__init__()
         self.progress_bar = progress_bar
         self.to_download = to_download
         self.project = project
         
     def run(self):
         for file in self.to_download:
+            QCoreApplication.processEvents()
             os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
 
             #casing is annoying, have to remove file before in case the casing of the name changes
@@ -534,11 +535,15 @@ class Launcher(QMainWindow):
         self.progress_bar.change_text("Downloading files...")
         self.progress_bar.counter = 0
         threads = 4
+        l_threads = []
         chunks = self.chunk_list(threads, to_download)
         for chunk in chunks:
             thread = DownloadThread(self.progress_bar, chunk, self.project)
             thread.start()
-            thread.join()
+            l_threads.append(thread)
+            
+        for thread in l_threads:
+            thread.wait()
 
         #any file not in tree.json is removed.
         self.progress_bar.change_text("Cleanup...")
