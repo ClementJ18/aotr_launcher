@@ -122,7 +122,7 @@ class ProgressBar(QDialog):
             
 class DownloadThread(QThread):
     def __init__(self, progress_bar, to_download, project):
-        super().__init__(self)
+        super(QThread, self).__init__(self)
         self.progress_bar = progress_bar
         self.to_download = to_download
         self.project = project
