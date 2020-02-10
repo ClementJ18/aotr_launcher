@@ -536,7 +536,7 @@ class Launcher(QMainWindow):
         threads = 4
         chunks = self.chunk_list(threads, to_download)
         for chunk in chunks:
-            thread = QThread(self.progress_bar, chunk, self.project)
+            thread = DownloadThread(self.progress_bar, chunk, self.project)
             thread.start()
             thread.join()
 
