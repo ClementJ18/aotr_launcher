@@ -301,7 +301,7 @@ class Launcher(QMainWindow):
                 try:
                     file_info = self.project.files.get(file_path="tree.json", ref="master")
                     content = base64.b64decode(file_info.content)
-                    version_online = json.loads(content)
+                    version_online = json.loads(content)["version"]
                 except IndexError:
                     QMessageBox.critical(self, "Base Error", "Did not find tree.json, you cannot currently update but can still play. Please report this bug to the discord.", QMessageBox.Ok, QMessageBox.Ok)
                     return
