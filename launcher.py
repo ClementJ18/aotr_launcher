@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
     QComboBox, QLineEdit, QPushButton, QCheckBox, QSlider, QLCDNumber,
     QPlainTextEdit, QMenuBar, QMainWindow, QFileDialog, QGraphicsDropShadowEffect,
     QAbstractButton, QProgressBar, QInputDialog, QDialog)
-from PyQt5.QtCore import Qt, QSize, QCoreApplication
+from PyQt5.QtCore import Qt, QSize, QCoreApplication, QThread
 from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush, QColor, QPixmap, QPainter
 
 import gitlab
@@ -119,6 +119,28 @@ class ProgressBar(QDialog):
     def keyPressEvent(self, evnt):
         if not evnt.key() == Qt.Key_Escape:
             super(ProgressBar, self).keyPressEvent(evnt)
+            
+class DownloadThread(QThread):
+    def __init__(self, progress_bar, to_download, project):
+        super().__init__(self)
+        self.progress_bar = progress_bar
+        self.to_download = to_download
+        self.project = project
+        
+    def run(self):
+        for file in self.to_download:
+            os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
+
+            #casing is annoying, have to remove file before in case the casing of the name changes
+            if os.path.exists(file["path"]):
+                os.remove(file["path"])
+
+            with open(file["path"], "wb") as file_io:
+                f = self.project.files.get(file_path="source/{}".format(file["name"].lower()), ref="master")
+                file_io.write(base64.b64decode(f.content))
+            self.progress_bar.counter += 1
+            self.progress_bar.change_percent((self.progress_bar.counter/len(self.to_download))*100)
+        
 
 #main window
 class Launcher(QMainWindow):
@@ -445,6 +467,15 @@ class Launcher(QMainWindow):
             hasher.update(buf)
 
         return hasher.hexdigest()
+        
+    def chunk_list(self, size, l):
+        length = len(l)
+        chunk_size = (length//size) + 1
+        chunks = []
+        for x in range(size):
+            chunks.append(l[x*chunk_size:(x+1)*chunk_size])
+            
+        return chunks
 
     def file_fixer(self, string):
         #update method
@@ -501,18 +532,13 @@ class Launcher(QMainWindow):
 
         #actually download all the files that have been marked as changed or missing
         self.progress_bar.change_text("Downloading files...")
-        for file in to_download:
-            QCoreApplication.processEvents()
-            self.progress_bar.change_percent((to_download.index(file)/len(to_download))*100)
-            os.makedirs(os.path.dirname(file["path"]), exist_ok=True)
-
-            #casing is annoying, have to remove file before in case the casing of the name changes
-            if os.path.exists(file["path"]):
-                os.remove(file["path"])
-
-            with open(file["path"], "wb") as file_io:
-                f = self.project.files.get(file_path="source/{}".format(file["name"].lower()), ref="master")
-                file_io.write(base64.b64decode(f.content))
+        self.progress_bar.counter = 0
+        threads = 4
+        chunks = self.chunk_list(threads, to_download)
+        for chunk in chunks:
+            thread = QThread(progress_bar, chunk, self.project)
+            thread.start()
+            thread.join()
 
         #any file not in tree.json is removed.
         self.progress_bar.change_text("Cleanup...")
